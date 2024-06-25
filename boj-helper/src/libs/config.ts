@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
 import simpleGit, { SimpleGit } from 'simple-git';
-
+import * as path from "path"
+import * as fs from "fs"
 
 export interface Config{
     bojID:string;
@@ -10,6 +11,7 @@ export interface Config{
     gitEmail:string;
     gitAddress:string;
     workingDirectory:string;
+    chromePath:string;
 }
 
 
@@ -21,11 +23,15 @@ export async function getConfig(){
     let gitUsername = config.get<string>('gitUsername', '');
     let gitEmail = config.get<string>('gitEmail', '');
     let gitAddress = config.get<string>('gitAddress', '');
+    let chromePath = config.get<string>('chromePath', '');
 
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) {
-        throw "에러"
+        vscode.window.showErrorMessage("여기?")
+        throw "workspace error"
     }
+
+
 
 
     let workingDirectory = workspaceFolders[0].uri.fsPath
@@ -119,7 +125,29 @@ export async function getConfig(){
         config.update("gitAddress", gitAddress)
     }
 
+    if (!chromePath){
+        while (!chromePath){
+            let _chromePath = await vscode.window.showInputBox({prompt:"chrome.exe의 경로를 입력하세요"})
+            if (_chromePath) {
+                if (!fs.existsSync(_chromePath)){
+                    vscode.window.showErrorMessage(`${_chromePath}에 chrome.exe가 설치되어 있지 않습니다. Google Chrome을 설치해주세요.`)
+                    throw "chromepath error"
+                } else {
+                    chromePath = _chromePath
+                }
+            }
+        }
+        config.update("chromePath", chromePath)
+
+
+        if (!fs.existsSync(chromePath)){
+            vscode.window.showErrorMessage(`${chromePath}에 chrome.exe가 설치되어 있지 않습니다. Google Chrome을 설치해주세요.`)
+            throw "chromepath error"
+        }
+    }
+
+
     // TODO: workingDirectory에 gitAddress에 해당하는 repository가 있는가? 
 
-    return { bojID, language, gitUsername, gitEmail, gitAddress, workingDirectory} 
+    return { bojID, language, gitUsername, gitEmail, gitAddress, workingDirectory, chromePath} 
 }

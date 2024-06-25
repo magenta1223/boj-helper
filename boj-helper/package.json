@@ -1,118 +1,132 @@
 {
-  "name": "boj-helper",
-  "displayName": "boj-helper",
-  "description": "",
-  "version": "0.0.1",
-  "engines": {
-    "vscode": "^1.90.0"
-  },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [
-    "onCommand:extension.openProblem",
-    "onCommand:extension.createProblemFiles",
-    "onCommand:extension.crawlSolved",
-    "onCommand:extension.updateReadme",
-    "onCommand:extension.pushToGithub"
-  ],
-  "main": "./dist/extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "onCommand.extension.openProblem",
-        "title": "TEST: Open Problem"
-      },
-      {
-        "command": "onCommand.extension.createProblemFiles",
-        "title": "TEST: Create Problem"
-      },
-      {
-        "command": "onCommand.extension.crawlSolved",
-        "title": "TEST: Crawl Solved Problems"
-      },
-      {
-        "command": "onCommand.extension.updateReadme",
-        "title": "TEST: Update README.md"
-      },
-      {
-        "command": "onCommand.extension.pushToGithub",
-        "title": "TEST: push to github repository"
-      }
+    "name": "boj-helper",
+    "displayName": "boj-helper",
+    "description": "",
+    "version": "0.0.12",
+    "engines": {
+        "vscode": "^1.90.0"
+    },
+    "categories": [
+        "Other"
     ],
-    "configuration": {
-      "type": "object",
-      "title": "My Extension Configuration",
-      "properties": {
-        "boj-helper.BOJID": {
-          "type": "string",
-          "default": "",
-          "description": "Baekjoon Online Judge ID"
-        },
-        "boj-helper.language": {
-          "type": "string",
-          "enum": [
-            "python",
-            "cpp",
-            "c",
-            "java",
-            "rust"
-          ],
-          "default": "python",
-          "description": "Default programming language for new problem files"
-        },
-        "boj-helper.gitUsername": {
-          "type": "string",
-          "default": "",
-          "description": "github username"
-        },
-        "boj-helper.gitEmail": {
-          "type": "string",
-          "default": "",
-          "description": "github email"
-        },
-        "boj-helper.gitAddress": {
-          "type": "string",
-          "default": "",
-          "description": "Address of github repository for save source codes. ex) https://github.com/%userName%/%repositoryName.git"
+    "activationEvents": [
+        "onCommand:extension.openProblem",
+        "onCommand:extension.createProblemFiles",
+        "onCommand:extension.crawlSolved",
+        "onCommand:extension.updateReadme",
+        "onCommand:extension.pushToGithub"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "onCommand.extension.openProblem",
+                "title": "TTEST: BOJ Helper: Open Problem"
+            },
+            {
+                "command": "onCommand.extension.createProblemFiles",
+                "title": "TTEST: BOJ Helper: Create Problem"
+            },
+            {
+                "command": "onCommand.extension.crawlSolved",
+                "title": "TTEST: BOJ Helper: Crawl Solved Problems"
+            },
+            {
+                "command": "onCommand.extension.updateReadme",
+                "title": "TTEST: BOJ Helper: Update README.md"
+            },
+            {
+                "command": "onCommand.extension.pushToGithub",
+                "title": "TTEST: BOJ Helper: push to github repository"
+            }
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "BOJ Helper Configuration",
+            "properties": {
+                "boj-helper.BOJID": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Baekjoon Online Judge ID"
+                },
+                "boj-helper.language": {
+                    "type": "string",
+                    "enum": [
+                        "python",
+                        "cpp",
+                        "c",
+                        "java",
+                        "rust"
+                    ],
+                    "default": "python",
+                    "description": "새 문제를 풀 때 사용할 프로그래밍 언어를 선택합니다."
+                },
+                "boj-helper.gitUsername": {
+                    "type": "string",
+                    "default": "",
+                    "description": "github username"
+                },
+                "boj-helper.gitEmail": {
+                    "type": "string",
+                    "default": "",
+                    "description": "github email"
+                },
+                "boj-helper.gitAddress": {
+                    "type": "string",
+                    "default": "",
+                    "description": "소스코드를 보관할 github repository 주소. ex) https://github.com/%userName%/%repositoryName.git"
+                },
+                "boj-helper.chormePath": {
+                    "type": "string",
+                    "default": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+                    "description": "chrome.exe의 경로 ex) C:/Program Files/Google/Chrome/Application/chrome.exe"
+                }
+
+            }
         }
-      }
+    },
+    "publisher": "magenta1223",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/magenta1223/boj-helper.git"
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run package",
+        "compile": "webpack",
+        "watch": "webpack --watch",
+        "package": "webpack --mode production --devtool hidden-source-map",
+        "compile-tests": "tsc -p . --outDir out",
+        "watch-tests": "tsc -p . -w --outDir out",
+        "pretest": "npm run compile-tests && npm run compile && npm run lint",
+        "lint": "eslint src --ext ts",
+        "test": "vscode-test",
+        "start": "NODE_ENV=development node dist/index.js",
+        "build": "NODE_ENV=production webpack"
+    },
+    "devDependencies": {
+        "@types/jsdom": "^21.1.7",
+        "@types/mocha": "^10.0.6",
+        "@types/node": "18.x",
+        "@types/vscode": "^1.90.0",
+        "@typescript-eslint/eslint-plugin": "^7.11.0",
+        "@typescript-eslint/parser": "^7.11.0",
+        "@vscode/test-cli": "^0.0.9",
+        "@vscode/test-electron": "^2.4.0",
+        "copy-webpack-plugin": "^12.0.2",
+        "eslint": "^8.57.0",
+        "ts-loader": "^9.5.1",
+        "typescript": "^5.4.5",
+        "webpack": "^5.91.0",
+        "webpack-cli": "^5.1.4"
+    },
+    "dependencies": {
+        "@types/d3": "^7.4.3",
+        "axios": "^1.7.2",
+        "cheerio": "^1.0.0-rc.12",
+        "d3": "^7.9.0",
+        "jsdom": "^24.1.0",
+        "puppeteer": "^22.11.2",
+        "simple-git": "^3.25.0",
+        "xml-formatter": "^3.6.2"
     }
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run package",
-    "compile": "webpack",
-    "watch": "webpack --watch",
-    "package": "webpack --mode production --devtool hidden-source-map",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
-    "pretest": "npm run compile-tests && npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "vscode-test"
-  },
-  "devDependencies": {
-    "@types/jsdom": "^21.1.7",
-    "@types/mocha": "^10.0.6",
-    "@types/node": "18.x",
-    "@types/vscode": "^1.90.0",
-    "@typescript-eslint/eslint-plugin": "^7.11.0",
-    "@typescript-eslint/parser": "^7.11.0",
-    "@vscode/test-cli": "^0.0.9",
-    "@vscode/test-electron": "^2.4.0",
-    "eslint": "^8.57.0",
-    "ts-loader": "^9.5.1",
-    "typescript": "^5.4.5",
-    "webpack": "^5.91.0",
-    "webpack-cli": "^5.1.4"
-  },
-  "dependencies": {
-    "@types/d3": "^7.4.3",
-    "axios": "^1.7.2",
-    "cheerio": "^1.0.0-rc.12",
-    "d3": "^7.9.0",
-    "jsdom": "^24.1.0",
-    "puppeteer": "^22.11.2",
-    "simple-git": "^3.25.0",
-    "xml-formatter": "^3.6.2"
-  }
 }

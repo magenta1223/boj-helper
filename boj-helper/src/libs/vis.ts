@@ -52,9 +52,16 @@ function getData():{agg:{[key:string]: ParsedData[]}, raw:MetaData[]} {
 
 
 export async function renderSvg(config:Config){
+    // const chromePath = process.env.NODE_ENV === 'development'
+    //     ? path.resolve(__dirname, '../src/resources/chromium/chrome.exe')
+    //     : path.resolve(__dirname, './resources/chromium/chrome.exe');
+
+
     const userInfo = await getUserInfo(config.bojID)
     const {agg, raw} = getData()
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+        executablePath: config.chromePath, 
+    });
     const page = await browser.newPage();
     const content = `
         <html>

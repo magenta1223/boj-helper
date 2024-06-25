@@ -13,6 +13,11 @@ export async function crawlSolvedProblems(config:Config){
     if (!workspaceFolders) {
         return;
     }
-    const crawler = new Crawler(config.bojID, bojPSWD, workspaceFolders[0].uri.fsPath, config.language)
+
+    vscode.window.showInformationMessage('CRAWL: START')
+    const crawler = await new Crawler(config.bojID, bojPSWD, workspaceFolders[0].uri.fsPath, config.language, config.chromePath)
+    vscode.window.showInformationMessage('CRAWL: Init')
     crawler.crawl()
+    vscode.window.showInformationMessage('CRAWL: Crawl')
+
 }

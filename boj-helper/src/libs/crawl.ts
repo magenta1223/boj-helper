@@ -15,14 +15,16 @@ export class Crawler {
     private readonly delayms:number 
     private readonly language:string;
     private browser!:puppeteer.Browser; 
+    private readonly chromePath:string;
 
-    constructor(_id: string, _pswd: string, workingDirectory: string, language:string) {
+    constructor(_id: string, _pswd: string, workingDirectory: string, language:string, chromePath:string) {
         console.log("Start crawling source codes you have solved");
         this.id = _id;
         this.password = _pswd;
         this.problemDir = path.join(workingDirectory, "problems");
         this.delayms = 5000;
         this.language = language;
+        this.chromePath = chromePath
         
         if (!fs.existsSync(this.problemDir)) {
             vscode.window.showInformationMessage(`${this.problemDir}가 생성되었습니다.`)
@@ -32,11 +34,23 @@ export class Crawler {
     }
 
     async initBrowser(){
-        this.browser = await puppeteer.launch({headless: false});
+        this.browser = await puppeteer.launch({
+            headless: false,
+            executablePath: this.chromePath, 
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-gpu',
+              ],
+        });
     } 
 
     async get(url:string){
         console.log(`now: ${url}`)
+        vscode.window.showInformationMessage(`CRAWL: loading ${url}`)
+
         let page = await this.browser.newPage();
         await page.goto(url, {waitUntil:"load"})
         let content = await page.content();
@@ -58,9 +72,13 @@ export class Crawler {
     }
 
     async crawl(){
+        vscode.window.showInformationMessage('CRAWL: Open Browser')
         await this.initBrowser()
+        vscode.window.showInformationMessage('CRAWL: Login')
         await this.login()
+        vscode.window.showInformationMessage(`CRAWL: Get solved problems`)
         const toBeUpdated = await this.getSolvedProblems()
+        vscode.window.showInformationMessage(`CRAWL: Crawl sources`)
         await this.crawlSources(toBeUpdated)
         this.browser.close()
     }
@@ -90,6 +108,7 @@ export class Crawler {
     }
 
     async getSolvedProblems(): Promise<string[]>{
+
         let url = `https://solved.ac/profile/${this.id}/solved`
         let maxPage = await this.getMaxPage(url)
         let allProblems = await this.getAllProblems(url, maxPage)
