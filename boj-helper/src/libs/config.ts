@@ -3,6 +3,7 @@ import axios from 'axios';
 import simpleGit, { SimpleGit } from 'simple-git';
 import * as path from "path"
 import * as fs from "fs"
+import { reporters } from 'mocha';
 
 export interface Config{
     bojID:string;
@@ -43,7 +44,12 @@ export async function getConfig(){
             let _bojID = await vscode.window.showInputBox({prompt:"Baekjoon Online Judge의 ID를 입력해주세요. 기존에 작성한 문제 수집 및 성능평가에 사용됩니다."})
             // 존재하는지 확인 
             try {
-                let response = await axios.get(`https://www.acmicpc.net/user/${_bojID}`);
+                let response = await axios.get(`https://www.acmicpc.net/user/${_bojID}`,{
+                    headers: {
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+                    },
+                });
+                console.log(response.data)
                 if (_bojID !== undefined && response.status >= 200 && response.status < 300){
                     bojID = _bojID
                 } else {
@@ -106,7 +112,11 @@ export async function getConfig(){
         while (!gitAddress){
             let _gitAddress = await vscode.window.showInputBox({prompt:"코드를 저장할 github repository의 주소를 입력하세요"})
             try {
-                let response = await axios.get(`${_gitAddress}`);
+                let response = await axios.get(`${_gitAddress}`, {
+                    headers: {
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+                    },
+                });
                 if (_gitAddress !== undefined && response.status >= 200 && response.status < 300){
                     gitAddress = _gitAddress
                 } else {
@@ -138,8 +148,6 @@ export async function getConfig(){
             }
         }
         config.update("chromePath", chromePath)
-
-
         if (!fs.existsSync(chromePath)){
             vscode.window.showErrorMessage(`${chromePath}에 chrome.exe가 설치되어 있지 않습니다. Google Chrome을 설치해주세요.`)
             throw "chromepath error"
@@ -148,6 +156,41 @@ export async function getConfig(){
 
 
     // TODO: workingDirectory에 gitAddress에 해당하는 repository가 있는가? 
+
+    // 1. 현재 workingDirectory에 git init이 있는지 확인 -> 없다면 init 
+    const gitDir = path.join(workingDirectory, ".git")
+    if (!fs.existsSync(gitDir)){
+        console.log("git 없음. 추가")
+        await git.init()
+    }
+    const remotes = await git.getRemotes(true)
+    if (remotes.length === 0){
+        console.log("git remote 없음. 추가")
+        await git.addRemote('origin', gitAddress)
+    } else {
+        const originRemote = remotes.find(remote => remote.name === 'origin')
+        console.log("git remote", originRemote?originRemote.refs.fetch:"", gitAddress,)
+        if (originRemote){
+            if (originRemote.refs.fetch !== gitAddress) {
+                console.log('remote가 있는데 다름.', `gitaddress : ${gitAddress}, 현재 remote: ${originRemote.refs.fetch}`)
+                // remote가 있고 URL이 다른 경우
+                fs.rmSync(gitDir, { recursive: true, force: true });
+                console.log('git 삭제')
+                await git.init();
+                console.log('다시 init')
+                await git.addRemote('origin', gitAddress);
+                console.log('add origin')
+            }
+        } else {
+            // origin remote가 없는 경우
+            console.log('origin 없음. 추가')
+            await git.addRemote('origin', gitAddress);
+        }
+    }
+    git.pull('origin', 'master')
+
+
+
 
     return { bojID, language, gitUsername, gitEmail, gitAddress, workingDirectory, chromePath} 
 }

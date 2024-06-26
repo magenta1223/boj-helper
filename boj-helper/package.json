@@ -2,7 +2,7 @@
     "name": "boj-helper",
     "displayName": "boj-helper",
     "description": "",
-    "version": "0.0.12",
+    "version": "0.1.2",
     "engines": {
         "vscode": "^1.90.0"
     },
@@ -21,23 +21,23 @@
         "commands": [
             {
                 "command": "onCommand.extension.openProblem",
-                "title": "TTEST: BOJ Helper: Open Problem"
+                "title": "BOJ Helper: Open Problem"
             },
             {
                 "command": "onCommand.extension.createProblemFiles",
-                "title": "TTEST: BOJ Helper: Create Problem"
+                "title": "BOJ Helper: Create Problem"
             },
             {
                 "command": "onCommand.extension.crawlSolved",
-                "title": "TTEST: BOJ Helper: Crawl Solved Problems"
+                "title": "BOJ Helper: Crawl Solved Problems"
             },
             {
                 "command": "onCommand.extension.updateReadme",
-                "title": "TTEST: BOJ Helper: Update README.md"
+                "title": "BOJ Helper: Update README.md"
             },
             {
                 "command": "onCommand.extension.pushToGithub",
-                "title": "TTEST: BOJ Helper: push to github repository"
+                "title": "BOJ Helper: push to github repository"
             }
         ],
         "configuration": {
@@ -76,7 +76,7 @@
                     "default": "",
                     "description": "소스코드를 보관할 github repository 주소. ex) https://github.com/%userName%/%repositoryName.git"
                 },
-                "boj-helper.chormePath": {
+                "boj-helper.chromePath": {
                     "type": "string",
                     "default": "C:/Program Files/Google/Chrome/Application/chrome.exe",
                     "description": "chrome.exe의 경로 ex) C:/Program Files/Google/Chrome/Application/chrome.exe"

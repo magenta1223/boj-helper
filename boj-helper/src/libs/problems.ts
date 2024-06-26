@@ -206,10 +206,10 @@ export async function getProblem(problemNumber:string, url: string): Promise<Pro
 
         // 로컬에 저장된 Bootstrap CSS 파일 경로
         // let bootstrapCssPath = path.resolve(__dirname, '../src/bootstrap/css/bootstrap.css');
-        const isDevelopment = process.env.NODE_ENV === 'development';
-        const bootstrapCssPath = isDevelopment
+
+        const bootstrapCssPath = process.env.NODE_ENV === 'development'
             ? path.resolve(__dirname, '../src/resources/bootstrap/css/bootstrap.css')
-            : path.resolve(__dirname, './resources/bootstrap/css/bootstrap.css');
+            : path.resolve(__dirname, './src/resources/bootstrap/css/bootstrap.css');
 
         console.log(process.env.NODE_ENV, bootstrapCssPath)
         // Bootstrap CSS 파일을 읽어옵니다.
