@@ -1,4 +1,6 @@
-# boj-helper README
+# boj-helper
+- This is source code of Visual Studio Code Extension [boj-helper](https://marketplace.visualstudio.com/items?itemName=magenta1223.boj-helper) by magenta1223 .
+- example is [here](https://github.com/magenta1223/boj-ttest)
 
 ## Features
 
