@@ -43,7 +43,7 @@
 
 ### Initialize 
 
-1. Install Google Chrome (or Update Google Chrome). Add the path of 
+1. Install Google Chrome (or Update Google Chrome).
 2. Update vscode(>=1.9.0)
 3. Generate New Github Repository
 4. Press `Ctrl+,` and search `boj-helper` 
