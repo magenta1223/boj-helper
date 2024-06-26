@@ -342,12 +342,12 @@ export function problemsToMarkdown(problems:MetaData[], problemPath:string):stri
     mdTable += `| ${columns.map(() => '---').join(' | ')} |\n`;
 
     problems.forEach((metadata, index) => {
-        let source = path.join("./problems", metadata.title, `${metadata.title}.py`).replaceAll(' ', '%20')
+        let source = path.join("./problems", metadata.title, `${metadata.title}.py`).replaceAll(' ', '%20').replaceAll('\\', '/')
         let rows:string[] = [
             `${metadata.problemNumber} 번`,
             `<img src="${metadata.tier.svg}" style="height:20px"> ${metadata.name}`,
             `[문제링크](https://boj.kr/${metadata.problemNumber})`,
-            `[소스코드](.\\${source})`,
+            `[소스코드](./${source})`,
             metadata.date.slice(0,10),
         ]
         mdTable += `| ${rows.join(' | ')} |\n`;
