@@ -11,6 +11,6 @@ export async function createProblemFiles(config:Config){
     }
 
     vscode.window.showInformationMessage(`Create Problem: ${problemNumber}`)
-    createProblem(problemNumber, config.language, true, "", "")
+    createProblem(config.bojID, problemNumber, config.language, true, "", "")
 };
 

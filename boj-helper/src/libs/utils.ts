@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 import axios from 'axios';
-import exp from 'constants';
-
+import * as fs from 'fs';
+import * as path from 'path';
 
 export function getFileExt(language: string): string {
     const f_exts: { [key: string]: string } = {
@@ -66,105 +66,114 @@ export function cleanSourceCode(text: string): string {
     }
 }
 
-export function htmlToMarkdown(html: string): string {
-    const $ = cheerio.load(html);
-    let markdown = '';
+const MDprefix: Record<string, string> = {
+    'h1' : '# ',
+    'h2' : '## ',
+    'h3' : '### ',
+    'li' : '- ',
+    [Symbol.iterator]: "[Symbol.iterator]"
+}
 
-    const prefix: Record<string, string> = {
-        'p' : '',
-        'h1' : '# ',
-        'h2' : '## ',
-        'h3' : '### ',
-        'li' : '- ',
-        [Symbol.iterator]: "[Symbol.iterator]"
+function getPrefix(tagName:string){
+    if (tagName in MDprefix){
+        return MDprefix[tagName]
+    } else {
+        return ""
+    }
+}
+
+export function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
+    let markdown = ""
+    let $el = $(el)
+    let tagName = el.name.toLocaleLowerCase()
+    let text = $el.text().replaceAll("\n", "").trim()
+    let isHidden = $el.attr('style')?.includes('display: none') || false;
+    
+    // display:none
+    if (isHidden){
+        return markdown
+    }
+    
+    // table 
+    if (tagName === "table"){
+        let table = $('#problem-info');            
+        let headers = table.find('thead th');
+        let headerTexts: string[] = [];
+        headers.each((index, element) => {
+            headerTexts.push($(element).text().trim());
+        });
+        markdown += `| ${headerTexts.join(' | ')} |\n`;
+        markdown += `| ${headerTexts.map(() => '---').join(' | ')} |\n`;
+    
+        let rows = table.find('tbody tr');
+        rows.each((index, row) => {
+            let cols = $(row).find('td');
+            let colTexts: string[] = [];
+            cols.each((index, col) => {
+                colTexts.push($(col).text().trim());
+            });
+            markdown += `| ${colTexts.join(' | ')} |\n`;
+        });
+        return markdown
+    }  
+    
+    // no children 
+    if ($el.children().length === 0){
+        switch (tagName) {
+            case 'p':
+            case 'li':
+            case 'h1':
+            case 'h2':
+            case 'h3':
+                markdown = `${getPrefix(tagName)}${text}\n\n`;
+                break;
+            case 'pre':
+                markdown = `<pre>${$el.html()}</pre>\n`;
+                break; 
+            case 'a':
+                markdown = `[${text}](${$el.attr('href')})`;
+                break; 
+            case 'sub':
+                markdown = `<sub>${text}</sub>`
+                break; 
+            case 'code':
+                markdown = `<code>${text}</code>`;
+                break;
+            case 'blockquote':
+                markdown += '> ' + text.trim().replace(/\n/g, '\n> ') + '\n\n';
+                break;
+            case 'br':
+                markdown += '\n';
+                break;
+            case 'span':
+                markdown += text; // 상위 태그가 반드시 존재
+                break;
+            case 'img':
+                if ($el.attr('src')?.includes('solved.ac')){
+                    markdown += `<img src="${$el.attr('src')}" style="height:20px" />`
+                } else {
+                    markdown += $el.html()
+                }
+                break; 
+            default:                        
+                break; 
+        }
+        return markdown 
     }
 
-    $('*').each((index, element) => {
-        if (element.type == "tag"){
-            let $el = $(element)
-            const tagName = element.name.toLocaleLowerCase()
-            let text = $el.text().replaceAll("\n", "").trim()
-            let pText = "";
-            $el.contents().each((_, elem) => {
-                if (elem.type === 'text') {
-                    pText += $(elem).text();
-                } else if (elem.type === "tag"){
-                    if (elem.name === 'sub') {
-                        pText += `<sub>${$(elem).text()}</sub>`;
-                    } else if (elem.name === 'a') {
-                        let aHref = $(elem).attr('href');
-                        let aText = $(elem).text();
-                        pText += `[${aText}](${aHref})`;
-                    } else if (elem.name === "code"){
-                        pText += `<code>${$(elem).text()}</code>`;
-                    }
-                }
-            });
-
-
-            let display:boolean = true;
-            let currentElement = $el;
-            while (currentElement.length > 0) {
-                let styleAttr = currentElement.attr('style');
-                if (styleAttr && styleAttr.includes('display: none;')) {
-                    display = false;
-                }
-                currentElement = currentElement.parent();
-            }
-
-            if (!display){
-            } else if (tagName === "table"){
-                const table = $('#problem-info');            
-                const headers = table.find('thead th');
-                const headerTexts: string[] = [];
-                
-                headers.each((index, element) => {
-                    headerTexts.push($(element).text().trim());
-                });
-                markdown += `| ${headerTexts.join(' | ')} |\n`;
-                markdown += `| ${headerTexts.map(() => '---').join(' | ')} |\n`;
-            
-                const rows = table.find('tbody tr');
-                rows.each((index, row) => {
-                    const cols = $(row).find('td');
-                    const colTexts: string[] = [];
-                    cols.each((index, col) => {
-                        colTexts.push($(col).text().trim());
-                    });
-                    markdown += `| ${colTexts.join(' | ')} |\n`;
-                });
-            } else {
-                switch (tagName) {
-                    case 'p':
-                    case 'li':
-                        markdown += `${prefix[tagName]}${pText}\n\n`;
-                        break;
-                    case 'h1':
-                    case 'h2':
-                    case 'h3':
-                        markdown += `${prefix[tagName]}${text}\n\n`;
-                        break;
-                    case 'pre':
-                        markdown += `<pre>${$el.html()}</pre>\n`;
-                        break; 
-                    case 'blockquote':
-                        markdown += '> ' + text.trim().replace(/\n/g, '\n> ') + '\n\n';
-                        break;
-                    case 'br':
-                        markdown += '\n';
-                        break;
-                    default:                        
-                        break; 
-                }
-            } 
+    markdown += getPrefix(tagName)
+    $el.contents().each((i, content) => {
+        if (content.type === "text"){
+            markdown += $(content).text().trimStart()
+        } else if (content.type === "tag"){
+            markdown += HTM($, content);
         }
     });
-    return markdown.trim(); // Markdown 결과의 앞뒤 공백을 제거하여 반환합니다.
+    return markdown + '\n'
 }
 
 
 export async function getUserInfo(boj_id:string): Promise<{solvedCount:number, rating:number, userClass:number,tier:number}>{
-    // let tier = await axios.get(`https://solved.ac/api/v3/problem/show?problemId=${problemNumber}`, {
     try{
         const userInfo = await axios.get(`https://solved.ac/api/v3/user/show/?handle=${boj_id}`, {
             headers: { Accept: "application/json"}
@@ -182,3 +191,56 @@ export async function getUserInfo(boj_id:string): Promise<{solvedCount:number, r
 }
 
 
+export async function moveFolder(source: string, destination: string): Promise<void> {
+    try {
+        await fs.promises.mkdir(destination, { recursive: true });
+        const entries = await fs.promises.readdir(source, { withFileTypes: true });
+        for (const entry of entries) {
+            const sourcePath = path.join(source, entry.name);
+            const destinationPath = path.join(destination, entry.name);
+            if (entry.isDirectory()) {
+                await moveFolder(sourcePath, destinationPath);
+            } else {
+                await fs.promises.rename(sourcePath, destinationPath);
+            }
+        }
+        await fs.promises.rmdir(source);
+    } catch (error) {
+        throw error;
+    }
+}
+
+import stringify from 'json-stringify-pretty-compact';
+import * as vscode from 'vscode';
+
+function getExistingFiles(problemDir:string){
+    return new Set(
+        fs.readdirSync(problemDir).filter(file => {
+            let fullPath = path.join(problemDir, file);
+            return fs.lstatSync(fullPath).isDirectory() && file.includes("번");
+        }));
+}
+
+
+export function refineMeta(){
+    // 1. problems하위의 모든 문제를 가져오고
+    // 2. 그 메타데이터를 불러와서
+    // 3. 다시 indent 넣어서 저장 
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+        return [];
+    }
+    let problemDir = path.join(workspaceFolders[0].uri.fsPath, "problems")
+
+    let allProblems = getExistingFiles(problemDir)
+
+    allProblems.forEach((dir, index) => {
+        let mdpath = path.join(problemDir, dir, "metadata.json")
+        let metadata = JSON.parse(fs.readFileSync(mdpath).toString('utf-8'))
+        fs.writeFileSync(mdpath, stringify(metadata, {
+            indent: 4,
+        }));
+        fs.rmSync(path.join(problemDir, dir, "metadata2.json"))
+
+    })
+}

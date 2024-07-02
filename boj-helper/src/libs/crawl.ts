@@ -109,37 +109,33 @@ export class Crawler {
 
     async getSolvedProblems(): Promise<string[]>{
 
-        let url = `https://solved.ac/profile/${this.id}/solved`
-        let maxPage = await this.getMaxPage(url)
-        let allProblems = await this.getAllProblems(url, maxPage)
+        // let url = `https://solved.ac/profile/${this.id}/solved`
+        // let maxPage = await this.getMaxPage(url)
+        // let allProblems = await this.getAllProblems(url, maxPage)
+
+        let url =  `https://www.acmicpc.net/user/${this.id}`
+        let allProblems = await this.getAllProblems(url)
+
+
         let existingFiles = this.getExistingFiles()
 
-        console.log(`Problems Directory: ${this.problemDir}`)
-        console.log(`Already collected: ${existingFiles}`)
+        // console.log(`Problems Directory: ${this.problemDir}`)
+        // console.log(`All problems: ${allProblems}`)
+        // console.log(`Already collected: ${Array.from(existingFiles).join(' ')}`)
         // total problems 처리 
         let toBeUpdated = allProblems.filter(item => !existingFiles.has(item))
         console.log(`To be updated: ${toBeUpdated}`)
         return toBeUpdated 
     }
 
-    async getMaxPage(url:string):Promise<number>{
-        let target = "#__next > div.css-axxp2y > div > div:nth-child(4) > div.css-18lc7iz > a"
+    async getAllProblems(url:string): Promise<string[]>{
+        let target = 'body > div.wrapper > div.container.content > div.row > div:nth-child(2) > div > div.col-md-9 > div:nth-child(2) > div.panel-body > div > a'
         let $ = await this.get(url)
-        let maxPage = Number($(target).last().text());
-        return maxPage
-    }
-
-    async getAllProblems(url:string, maxPage:number): Promise<string[]>{
-        let allProblems: string[] = [];
-        for (let pageNum = 1; pageNum <= maxPage; pageNum++) {
-            let target = '#__next > div.css-axxp2y > div > div:nth-child(4) > div.css-qijqp5 > table > tbody > tr'
-            let $ = await this.get(`${url}?page=${pageNum}`)
-            let rows = $(target)
-            rows.each((i, el) => {
-                allProblems.push($("td", el).eq(0).text().trim());
-            });
-        }
-        return allProblems
+        let problems:string[] = []
+        $(target).each((i, el) => {
+            problems.push($(el).text().trim())
+        })
+        return problems
     }
 
     getExistingFiles(){
@@ -159,7 +155,7 @@ export class Crawler {
             let num = solvedProblems[i]
             let {lastAcSubmission, submitTime} = await this.getLastAcSubmission(num)
             let sourceCode = await this.crawlCode(num, lastAcSubmission)
-            createProblem(num, this.language, false, sourceCode, submitTime)
+            createProblem(this.id, num, this.language, false, sourceCode, submitTime)
         }
     }
 
@@ -175,7 +171,7 @@ export class Crawler {
             let row = $(rows[i]).find('th, td')
             let cells = row.map((_, cell) => $(cell).text().trim()).get();
             // Check if the submission status is "맞았습니다!!"
-            if (cells[3] === "맞았습니다!!") {
+            if (cells[3] === "맞았습니다!!" || cells[3] === "100점") {
                 lastAcSubmission = cells[0]; // Store the submission ID
                 submitTime = $(row[row.length - 1]).find('a').attr('data-original-title')
                 if (submitTime){

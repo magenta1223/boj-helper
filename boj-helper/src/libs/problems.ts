@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as cheerio from 'cheerio';
 import * as utils from "./utils"
 import * as vscode from 'vscode';
+import stringify from 'json-stringify-pretty-compact';
 
 export interface TierInfo {
     name: string;
@@ -59,15 +60,9 @@ export const tierNames = [
 ];
 
 
-
-
-export async function createProblem(problemNumber:string, language:string, openWebView:boolean, code:string, submitTime:string){
+export async function createProblem(bojID:string, problemNumber:string, language:string, openWebView:boolean, code:string, submitTime:string){
     const problemUrl = `https://www.acmicpc.net/problem/${problemNumber}`;
     const problem = await getProblem(problemNumber, problemUrl);
-
-    if (submitTime !== ""){
-        problem.metadata.date = submitTime
-    }
 
     // 문제 생성 
     const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -75,8 +70,11 @@ export async function createProblem(problemNumber:string, language:string, openW
         vscode.window.showErrorMessage('작업폴더가 없습니다. 문제를 생성할 폴더 (problems의 상위 폴더)에서 수행하세요.');
         return;
     }
-    
-    // 폴더가 없다면 생성.
+
+    if (submitTime !== ""){
+        problem.metadata.date = submitTime
+    }
+
     const PATHS: { [key: string]: string } = {
         "folder":   path.join(workspaceFolders[0].uri.fsPath, openWebView? "":"problems" , problem.title),
     };
@@ -84,15 +82,16 @@ export async function createProblem(problemNumber:string, language:string, openW
     PATHS["markdown"]= path.join(PATHS.folder, `${problem.title}.md`);
     PATHS["metadata"]= path.join(PATHS.folder, `metadata.json`);
 
-
     if (!fs.existsSync(PATHS.folder)) {
         fs.mkdirSync(PATHS.folder);
     }
-    
+
     if (!fs.existsSync(PATHS.file)) {
-        fs.writeFileSync(PATHS.file, generateProblemFiles("magenta1223", problem, utils.getCommentSymbols(language), code));
+        fs.writeFileSync(PATHS.file, generateProblemFiles(bojID, problem, utils.getCommentSymbols(language), code));
         fs.writeFileSync(PATHS.markdown, problem.markdown);
-        fs.writeFileSync(PATHS.metadata, JSON.stringify(problem.metadata));
+        fs.writeFileSync(PATHS.metadata, stringify(problem.metadata, {
+            indent: 4,
+        }));
     } else {
         vscode.window.showErrorMessage(`파일이 이미 존재합니다: ${PATHS.file}`);
     }
@@ -107,58 +106,11 @@ export async function createProblem(problemNumber:string, language:string, openW
         panel.webview.html = problem.html 
         const uri = vscode.Uri.file(PATHS.file);
         const doc = await vscode.workspace.openTextDocument(uri);
-        // 열기 
         await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.Two });
     }
 };
 
-function generateProblemFiles(boj_id: string, problem:Problem, commentSymbol:{left:string, right:string}, code:string):string{
-    const leftSymbol = commentSymbol["left"]
-    const rightSymbol =  commentSymbol["right"]
-    const LEFT = `${leftSymbol}  ***********************************************
-${leftSymbol}                                                 
-${leftSymbol}                                                 
-${leftSymbol}                                                 
-${leftSymbol}                                                 
-${leftSymbol}                                                 
-${leftSymbol}                                                 
-${leftSymbol}                                                 
-${leftSymbol}                                                 
-${leftSymbol}                                                 
-${leftSymbol}  ***********************************************`;
 
-    const RIGHT = `***************************  ${rightSymbol}
-                             ${rightSymbol}
-      :::    :::    :::      ${rightSymbol}
-     :+:    :+:      :+:     ${rightSymbol}
-    +:+    +:+        +:+    ${rightSymbol}
-   +#+    +#+          +#+   ${rightSymbol}
-  +#+      +#+        +#+    ${rightSymbol}
- #+#        #+#      #+#     ${rightSymbol}
-###          ###   ##.kr     ${rightSymbol}
-                             ${rightSymbol}
-***************************  ${rightSymbol}`;
-
-    let left = LEFT.split("\n");
-    let right = RIGHT.split("\n");
-    
-    let problemNumber = problem.metadata.problemNumber
-    let date = problem.metadata.date
-
-    const symbolLen = leftSymbol.length
-
-    left[3] = `${leftSymbol}     Problem Number: ${problemNumber}`.padEnd(49+symbolLen);
-    left[5] = `${leftSymbol}     By: ${boj_id} <boj.kr/u/${boj_id}>`.padEnd(49+symbolLen);
-    left[7] = `${leftSymbol}     https://boj.kr/${problemNumber}`.padEnd(49+symbolLen);
-    left[8] = `${leftSymbol}     Solved: ${date} by ${boj_id}`.padEnd(49+symbolLen);
-
-    const header = left.map((l, index) => l + (right[index] || '')).join('\n');
-
-    return header + `\n\n${code}`
-}
-
-
-// Fetch HTML from a given URL
 export async function getProblem(problemNumber:string, url: string): Promise<Problem> {
     try {
         // fetch html according to problemNumber 
@@ -168,97 +120,17 @@ export async function getProblem(problemNumber:string, url: string): Promise<Pro
             },
         });
 
-        // fetch tier of problem from solved.ac
-        let tier = await getTier(problemNumber)
-
-        // ------- modify html -------
-        let $ = cheerio.load(response.data.toString("utf-8"));
-        let problemHeader = $('div.page-header');
-
-        let name = utils.cleanTitle($('#problem_title').text())
-        let title = `${problemNumber}번： ${name}`
-        problemHeader.replaceWith(`
-            <div class="page-header">
-                <h1 style="display: inline; margin-right: 10px;">
-                    ${title}
-                </h1>
-                <h2 style="display: inline;">
-                    <img src="${tier.svg}" class="solvedac-tier" style="vertical-align: middle; margin-left: 5px;">
-                    <span>${tier.name}</span>
-                </h2>
-            </div>
-        `)
-        
-        // remove button 
-        $('button').each((i, elem) => {$(elem).remove();});
-        $('span.problem-label').each((i, elem) => {$(elem).remove();});
-        
-        // replace col-md-X to col-sm-X 
-        $('[class*=col-md-]').each((i, elem) => {
-            let classes = $(elem).attr('class')?.split(' ') || [];
-            let updatedClasses = classes.map(cls => cls.replace('col-md-', 'col-sm-'));
-            $(elem).attr('class', updatedClasses.join(' '));
-        });
-
-        // Extract the specific part of the HTML
-        let content = $('body > div.wrapper > div.container.content > div.row');
-        let desiredContent = content.children('div').slice(2).toArray().map(elem => $.html(elem)).join('');
-
-        // 로컬에 저장된 Bootstrap CSS 파일 경로
-        // let bootstrapCssPath = path.resolve(__dirname, '../src/bootstrap/css/bootstrap.css');
-
-        const bootstrapCssPath = process.env.NODE_ENV === 'development'
-            ? path.resolve(__dirname, '../src/resources/bootstrap/css/bootstrap.css')
-            : path.resolve(__dirname, './src/resources/bootstrap/css/bootstrap.css');
-
-        console.log(process.env.NODE_ENV, bootstrapCssPath)
-        // Bootstrap CSS 파일을 읽어옵니다.
-        let bootstrapCss = fs.readFileSync(bootstrapCssPath, 'utf-8');
-
-        let html = `
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Modified Page</title>
-                <link rel="stylesheet" href="https://ddo7jzca0m2vt.cloudfront.net/css/problem-font.css?version=20230101">
-                <link rel="stylesheet" href="https://ddo7jzca0m2vt.cloudfront.net/unify/css/custom.css?version=20230101">
-                <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-                <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-                
-                <style>
-                    ${bootstrapCss}
-                </style>
-                <style>
-                    body {
-                        background-color: #1f1f1f;
-                        color: #cccccc;
-                    }
-                    h1, h2, h3 { margin-top: 20px; }
-
-                    [id^=sample-] {
-                        background-color: #4f4f4f !important; /* Override background color */
-                        color: #cccccc;
-                        }
-                </style>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/core.min.js" integrity="sha512-Vj8DsxZwse5LgmhPlIXhSr/+mwl8OajbZVCr4mX/TcDjwU1ijG6A15cnyRXqZd2mUOQqRk4YbQdc7XhvedWqMg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-            </head>
-            <body>
-                ${desiredContent || ''}
-            </body>
-            </html>
-        `;
-
-        // 예제 HTML
-        let markdown = utils.htmlToMarkdown(desiredContent || '')
-        markdown = markdown.replace(`## ${tier.name}`, "").replace(title, `${title} - <img src="${tier.svg}" style="height:20px" /> ${tier.name}`)
+        let $ = cheerio.load(response.data.toString("utf-8"));        
+        let {name, title, tier, desiredContent} = await getContent(problemNumber, $)
+        let html = generateHtml(desiredContent)
+        let markdown = getMarkdown(desiredContent)
+        markdown = markdown.replace(`\n\n## <img`, " - <img")//.replace(title, `${title} - <img src="${tier.svg}" style="height:20px" /> ${tier.name}`)
 
         let metadata = {
             name: name,
             title:title,
             problemNumber: problemNumber,
-            date:new Date().toISOString().slice(0, 19).replace('T', ' '),
+            date:new Date().toISOString().slice(0, 19).replace('T', ' '), // timezone issue 
             tier: tier 
         }
         let errorMsg = ""
@@ -292,6 +164,93 @@ export async function getProblem(problemNumber:string, url: string): Promise<Pro
     }
 }
 
+async function getContent(problemNumber:string, $:cheerio.CheerioAPI){
+    let name = utils.cleanTitle($('#problem_title').text())
+    let title = `${problemNumber}번： ${name}`
+    let tier = await getTier(problemNumber)
+
+    // clean html 
+    $('button').each((i, elem) => {$(elem).remove();});
+    $('span.problem-label').each((i, elem) => {$(elem).remove();});
+    $('[class*=col-md-]').each((i, elem) => {
+        let classes = $(elem).attr('class')?.split(' ') || [];
+        let updatedClasses = classes.map(cls => cls.replace('col-md-', 'col-sm-'));
+        $(elem).attr('class', updatedClasses.join(' '));
+    });
+    $('div.page-header').replaceWith(`
+        <div class="page-header">
+            <h1 style="display: inline; margin-right: 10px;">
+                ${title}
+            </h1>
+            <h2 style="display: inline;">
+                <img src="${tier.svg}" class="solvedac-tier" style="vertical-align: middle; margin-left: 5px;">
+                <span>${tier.name}</span>
+            </h2>
+        </div>
+    `)
+
+    let content = $('body > div.wrapper > div.container.content > div.row');
+    content.find('img').each((index, img) => {
+        let $img = $(img);
+        let src = $img.attr('src');
+        if (src && src.startsWith('/')) {
+            $img.attr('src', 'https://www.acmicpc.net' + src);
+        }
+    });
+    let desiredContent = content.children('div').slice(2).toArray().map(elem => $.html(elem)).join('');
+    
+    console.log(desiredContent)
+    return {name, title, tier, desiredContent}
+}
+
+function generateHtml(desiredContent:string){
+    let bootstrapCss = fs.readFileSync(
+        process.env.NODE_ENV === 'development'
+            ? path.resolve(__dirname, '../src/resources/bootstrap/css/bootstrap.css')
+            : path.resolve(__dirname, './src/resources/bootstrap/css/bootstrap.css'),
+        'utf-8'
+    );
+
+    return `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Modified Page</title>
+            <link rel="stylesheet" href="https://ddo7jzca0m2vt.cloudfront.net/css/problem-font.css?version=20230101">
+            <link rel="stylesheet" href="https://ddo7jzca0m2vt.cloudfront.net/unify/css/custom.css?version=20230101">
+            <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+            <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+            
+            <style>
+                ${bootstrapCss}
+            </style>
+            <style>
+                body {
+                    background-color: #1f1f1f;
+                    color: #cccccc;
+                }
+                h1, h2, h3 { margin-top: 20px; }
+
+                [id^=sample-] {
+                    background-color: #4f4f4f !important; /* Override background color */
+                    color: #cccccc;
+                    }
+            </style>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/core.min.js" integrity="sha512-Vj8DsxZwse5LgmhPlIXhSr/+mwl8OajbZVCr4mX/TcDjwU1ijG6A15cnyRXqZd2mUOQqRk4YbQdc7XhvedWqMg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        </head>
+        <body>
+            ${desiredContent || ''}
+        </body>
+        </html>
+    `;
+}
+
+function getMarkdown(desiredContent:string){
+    const $ = cheerio.load(`<body>${desiredContent}</body>`);
+    return utils.HTM($, $('body')[0])
+}
 
 async function getTier(problemNumber: string): Promise<TierInfo> {
     try {
@@ -302,7 +261,6 @@ async function getTier(problemNumber: string): Promise<TierInfo> {
         let name = tierNames[level];
         let svg = `https://static.solved.ac/tier_small/${level}.svg`;
         level = parseInt(level)
-        // return { name, name[0], svg, level};
         return {
             name : name, 
             abb : name[0],
@@ -311,11 +269,52 @@ async function getTier(problemNumber: string): Promise<TierInfo> {
             svg:svg, 
             level : level, 
         }
-
     } catch (error) {
         console.error(`Error fetching tier info for problem ${problemNumber}:`, error);
         throw error;
     }
+}
+
+function generateProblemFiles(boj_id: string, problem:Problem, commentSymbol:{left:string, right:string}, code:string):string{
+    const leftSymbol = commentSymbol["left"]
+    const rightSymbol =  commentSymbol["right"]
+    const LEFT = `${leftSymbol}  ***********************************************
+${leftSymbol}                                                 
+${leftSymbol}                                                 
+${leftSymbol}                                                 
+${leftSymbol}                                                 
+${leftSymbol}                                                 
+${leftSymbol}                                                 
+${leftSymbol}                                                 
+${leftSymbol}                                                 
+${leftSymbol}                                                 
+${leftSymbol}  ***********************************************`;
+
+    const RIGHT = `***************************  ${rightSymbol}
+                             ${rightSymbol}
+      :::    :::    :::      ${rightSymbol}
+     :+:    :+:      :+:     ${rightSymbol}
+    +:+    +:+        +:+    ${rightSymbol}
+   +#+    +#+          +#+   ${rightSymbol}
+  +#+      +#+        +#+    ${rightSymbol}
+ #+#        #+#      #+#     ${rightSymbol}
+###          ###   ##.kr     ${rightSymbol}
+                             ${rightSymbol}
+***************************  ${rightSymbol}`;
+
+    let left = LEFT.split("\n");
+    let right = RIGHT.split("\n");
+    const symbolLen = leftSymbol.length
+
+    let problemNumber = problem.metadata.problemNumber
+    let date = problem.metadata.date
+
+    left[3] = `${leftSymbol}     Problem Number: ${problemNumber}`.padEnd(49+symbolLen);
+    left[5] = `${leftSymbol}     By: ${boj_id} <boj.kr/u/${boj_id}>`.padEnd(49+symbolLen);
+    left[7] = `${leftSymbol}     https://boj.kr/${problemNumber}`.padEnd(49+symbolLen);
+    left[8] = `${leftSymbol}     Solved: ${date} by ${boj_id}`.padEnd(49+symbolLen);
+    const header = left.map((l, index) => l + (right[index] || '')).join('\n');
+    return header + `\n\n${code}`
 }
 
 export function storedProblemsAt(problemPath:string, moveTo:string): MetaData[]{
@@ -324,11 +323,10 @@ export function storedProblemsAt(problemPath:string, moveTo:string): MetaData[]{
     for (let problem of problemDirs) {
         let metadataPath = path.join(problemPath, problem, "metadata.json");
         let pDir = path.join(problemPath, problem);
-
         if (fs.existsSync(metadataPath)) {
             problems.push(JSON.parse(fs.readFileSync(metadataPath, 'utf8')))
             if (moveTo){
-                moveFolder(pDir, path.join(moveTo, problem))
+                utils.moveFolder(pDir, path.join(moveTo, problem))
             }
         }
     }
@@ -354,24 +352,3 @@ export function problemsToMarkdown(problems:MetaData[], problemPath:string):stri
     })
     return mdTable 
 }
-
-
-async function moveFolder(source: string, destination: string): Promise<void> {
-    try {
-        await fs.promises.mkdir(destination, { recursive: true });
-        const entries = await fs.promises.readdir(source, { withFileTypes: true });
-        for (const entry of entries) {
-            const sourcePath = path.join(source, entry.name);
-            const destinationPath = path.join(destination, entry.name);
-            if (entry.isDirectory()) {
-                await moveFolder(sourcePath, destinationPath);
-            } else {
-                await fs.promises.rename(sourcePath, destinationPath);
-            }
-        }
-        await fs.promises.rmdir(source);
-    } catch (error) {
-        throw error;
-    }
-}
-

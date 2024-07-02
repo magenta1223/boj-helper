@@ -31,18 +31,16 @@ export async function getConfig(){
         vscode.window.showErrorMessage("여기?")
         throw "workspace error"
     }
-
-
-
-
     let workingDirectory = workspaceFolders[0].uri.fsPath
 
     const git: SimpleGit = simpleGit(workingDirectory);
 
+    // 1. 값이 없거나 -> 함.
+    // 2. 이상한 값인지 확인
+
     if (!bojID){
         while (!bojID){
             let _bojID = await vscode.window.showInputBox({prompt:"Baekjoon Online Judge의 ID를 입력해주세요. 기존에 작성한 문제 수집 및 성능평가에 사용됩니다."})
-            // 존재하는지 확인 
             try {
                 let response = await axios.get(`https://www.acmicpc.net/user/${_bojID}`,{
                     headers: {
@@ -59,7 +57,6 @@ export async function getConfig(){
                 vscode.window.showErrorMessage("ID 존재 여부 확인 중 에러가 발생했습니다.")
             }
         }
-
         vscode.window.showInformationMessage(`$Baekjoon Online Judge ID가 ${bojID}로 설정되었습니다.`)
         config.update("BOJID", bojID)
     }
@@ -88,7 +85,6 @@ export async function getConfig(){
             }
         }
         vscode.window.showInformationMessage(`git username이 ${gitUsername}로 설정되었습니다.`)
-        // utils.executeCommand(`git config --global user.name ${gitUsername}`, workingDirectory)
         git.addConfig('user.name', gitUsername)
         config.update("gitUsername", gitUsername)
     }
@@ -103,7 +99,6 @@ export async function getConfig(){
             }
         }
         vscode.window.showInformationMessage(`git email이 ${gitEmail}로 설정되었습니다.`)
-        // utils.executeCommand(`git config --global user.email ${gitEmail}`, workingDirectory)
         git.addConfig('user.email', gitEmail)
         config.update("gitEmail", gitEmail)
     }
@@ -128,8 +123,6 @@ export async function getConfig(){
             }
         }
         vscode.window.showInformationMessage(`github 저장소가 ${gitAddress}로 설정되었습니다.`)
-        // utils.executeCommand(`git init`, workingDirectory)
-        // utils.executeCommand(`git remote add origin ${gitEmail}`, workingDirectory)
         git.init()
         git.addRemote('origin', gitAddress)
         config.update("gitAddress", gitAddress)
@@ -160,37 +153,34 @@ export async function getConfig(){
     // 1. 현재 workingDirectory에 git init이 있는지 확인 -> 없다면 init 
     const gitDir = path.join(workingDirectory, ".git")
     if (!fs.existsSync(gitDir)){
-        console.log("git 없음. 추가")
         await git.init()
     }
+    // const remotes = await git.getRemotes(true)
+    // if (remotes.length === 0){
+    //     await git.addRemote('origin', gitAddress)
+    // } else {
+    //     const originRemote = remotes.find(remote => remote.name === 'origin')
+    //     if (originRemote){
+    //         if (originRemote.refs.fetch !== gitAddress) {
+    //             fs.rmSync(gitDir, { recursive: true, force: true });
+    //             await git.init();
+    //             await git.addRemote('origin', gitAddress);
+    //         }
+    //     } else {
+    //         await git.addRemote('origin', gitAddress);
+    //     }
+    // }
+
+
     const remotes = await git.getRemotes(true)
-    if (remotes.length === 0){
-        console.log("git remote 없음. 추가")
+    const originRemote = remotes.find(remote => remote.name === 'origin')
+    if (remotes.length === 0 || !originRemote){
         await git.addRemote('origin', gitAddress)
-    } else {
-        const originRemote = remotes.find(remote => remote.name === 'origin')
-        console.log("git remote", originRemote?originRemote.refs.fetch:"", gitAddress,)
-        if (originRemote){
-            if (originRemote.refs.fetch !== gitAddress) {
-                console.log('remote가 있는데 다름.', `gitaddress : ${gitAddress}, 현재 remote: ${originRemote.refs.fetch}`)
-                // remote가 있고 URL이 다른 경우
-                fs.rmSync(gitDir, { recursive: true, force: true });
-                console.log('git 삭제')
-                await git.init();
-                console.log('다시 init')
-                await git.addRemote('origin', gitAddress);
-                console.log('add origin')
-            }
-        } else {
-            // origin remote가 없는 경우
-            console.log('origin 없음. 추가')
-            await git.addRemote('origin', gitAddress);
-        }
+    } else if (originRemote && originRemote.refs.fetch !== gitAddress) {
+        fs.rmSync(gitDir, { recursive: true, force: true });
+        await git.init();
+        await git.addRemote('origin', gitAddress);
     }
-    git.pull('origin', 'master')
-
-
-
-
+    await git.pull('origin', 'master')
     return { bojID, language, gitUsername, gitEmail, gitAddress, workingDirectory, chromePath} 
 }
