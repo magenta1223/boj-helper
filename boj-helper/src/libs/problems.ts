@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as cheerio from 'cheerio';
 import * as utils from "./utils"
-import * as vscode from 'vscode';
+import * as vscode from "vscode"
 import stringify from 'json-stringify-pretty-compact';
 
 export interface TierInfo {
@@ -29,7 +29,14 @@ export interface Problem {
     markdown:string;
     metadata:MetaData;
     errorMsg:string;
+    testCases:string
 }
+
+export interface testCase {
+    input:string,
+    output:string
+}
+
 
 export const NameColors = [
     "#9D4900", "#A54F00", "#AD5600", "#B55D0A", "#C67739",
@@ -59,8 +66,7 @@ export const tierNames = [
     "Ruby V", "Ruby IV", "Ruby III", "Ruby II", "Ruby I",
 ];
 
-
-export async function createProblem(bojID:string, problemNumber:string, language:string, openWebView:boolean, code:string, submitTime:string){
+export async function createProblem(bojID:string, problemNumber:string,language:string, openWebView:boolean,code:string, submitTime:string){
     const problemUrl = `https://www.acmicpc.net/problem/${problemNumber}`;
     const problem = await getProblem(problemNumber, problemUrl);
 
@@ -80,6 +86,7 @@ export async function createProblem(bojID:string, problemNumber:string, language
     };
     PATHS["file"]=     path.join(PATHS.folder, `${problem.title}.${utils.getFileExt(language)}`);
     PATHS["markdown"]= path.join(PATHS.folder, `${problem.title}.md`);
+    PATHS["testCases"]= path.join(PATHS.folder, `testCases.txt`);
     PATHS["metadata"]= path.join(PATHS.folder, `metadata.json`);
 
     if (!fs.existsSync(PATHS.folder)) {
@@ -89,6 +96,7 @@ export async function createProblem(bojID:string, problemNumber:string, language
     if (!fs.existsSync(PATHS.file)) {
         fs.writeFileSync(PATHS.file, generateProblemFiles(bojID, problem, utils.getCommentSymbols(language), code));
         fs.writeFileSync(PATHS.markdown, problem.markdown);
+        fs.writeFileSync(PATHS.testCases, problem.testCases);
         fs.writeFileSync(PATHS.metadata, stringify(problem.metadata, {
             indent: 4,
         }));
@@ -108,7 +116,8 @@ export async function createProblem(bojID:string, problemNumber:string, language
         const doc = await vscode.workspace.openTextDocument(uri);
         await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.Two });
     }
-};
+
+}
 
 
 export async function getProblem(problemNumber:string, url: string): Promise<Problem> {
@@ -121,7 +130,7 @@ export async function getProblem(problemNumber:string, url: string): Promise<Pro
         });
 
         let $ = cheerio.load(response.data.toString("utf-8"));        
-        let {name, title, tier, desiredContent} = await getContent(problemNumber, $)
+        let {name, title, tier, testCases, desiredContent} = await getContent(problemNumber, $)
         let html = generateHtml(desiredContent)
         let markdown = getMarkdown(desiredContent)
         markdown = markdown.replace(`\n\n## <img`, " - <img")//.replace(title, `${title} - <img src="${tier.svg}" style="height:20px" /> ${tier.name}`)
@@ -134,33 +143,18 @@ export async function getProblem(problemNumber:string, url: string): Promise<Pro
             tier: tier 
         }
         let errorMsg = ""
-        return {html, title, markdown, metadata, errorMsg};
+        return {html, title, markdown, metadata, testCases, errorMsg};
 
     } catch (error) {
         console.error(`Error fetching the URL ${url}:`, error);
 
-        let html = "";
-        let title = "";
-        let markdown = "";
-        let tier = {
-            name:"",
-            abb:"",
-            nameColor :"",
-            abbColor : "",
-            svg:"",
-            level:0,
-        };
-        let metadata = {
-            name:"",
-            title:"",
-            problemNumber:"",
-            date:"",
-            tier: tier,
-    
-        };
+        let html = "";let title = "";let markdown = "";
+        let tier = {name:"", abb:"", nameColor :"", abbColor : "", svg:"", level:0};
+        let metadata = {name:"", title:"", problemNumber:"", date:"", tier: tier};
+        let testCases = ""
         let errorMsg = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
 
-        return {html, title, markdown, metadata, errorMsg}
+        return {html, title, markdown, metadata, testCases, errorMsg}
     }
 }
 
@@ -191,16 +185,36 @@ async function getContent(problemNumber:string, $:cheerio.CheerioAPI){
 
     let content = $('body > div.wrapper > div.container.content > div.row');
     content.find('img').each((index, img) => {
-        let $img = $(img);
-        let src = $img.attr('src');
+        let src = $(img).attr('src');
         if (src && src.startsWith('/')) {
-            $img.attr('src', 'https://www.acmicpc.net' + src);
+            $(img).attr('src', 'https://www.acmicpc.net' + src);
         }
     });
-    let desiredContent = content.children('div').slice(2).toArray().map(elem => $.html(elem)).join('');
+
+    // test case 
+
+    // 1. id가 sample-input X -> tc로 만들면 된다.
+    // 1. pre.sample-data인 모든 요소를 찾고
+    // 2. 두 개 단위로 끊는다. 
+    // 3. 첫 번째를 input, 두 번째를 output으로 지정 
+
+    let sampleInputs = $('[id^=sample-input-]')
+    let sampleOutputs = $('[id^=sample-output-]')
+    let testCases:string = ""
     
-    console.log(desiredContent)
-    return {name, title, tier, desiredContent}
+    for (let i=0;i<sampleInputs.length;i++){
+        let input = $(sampleInputs[i]).html() || ""
+        let output = $(sampleOutputs[i]).html() || ""
+        // testCases.push({
+        //     input: input.replace(/\n$/, ''),
+        //     output: output.replace(/\n$/, '')
+        // })
+        testCases += `Input:(\n${input})\n\nOutput:(\n${output})\n\n`
+    }
+
+
+    let desiredContent = content.children('div').slice(2).toArray().map(elem => $.html(elem)).join('');
+    return {name, title, tier, testCases, desiredContent}
 }
 
 function generateHtml(desiredContent:string){
@@ -275,7 +289,7 @@ async function getTier(problemNumber: string): Promise<TierInfo> {
     }
 }
 
-function generateProblemFiles(boj_id: string, problem:Problem, commentSymbol:{left:string, right:string}, code:string):string{
+export function generateProblemFiles(boj_id: string, problem:Problem, commentSymbol:{left:string, right:string}, code:string):string{
     const leftSymbol = commentSymbol["left"]
     const rightSymbol =  commentSymbol["right"]
     const LEFT = `${leftSymbol}  ***********************************************

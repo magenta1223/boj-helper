@@ -12,6 +12,12 @@
     - statistics
 4. push to github
 
+5. Run test cases.
+    - `Ctrl+Shift+P` -> `BOJ Helper: Run Testcase` -> 문제 번호 입력
+    - 문제파일이 있어야 수행 가능함. 
+    - 문제 폴더 내의 testCases.txt를 참조해 수행하고, 최대 150,000ms 내에 수행 가능한지 확인 (문제의 timeout을 참조하도록 업데이트 예정)
+
+
 ## Requirements
 - vscode >= 1.9.0
 - languages: python, cpp, c, rust

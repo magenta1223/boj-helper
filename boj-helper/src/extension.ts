@@ -5,6 +5,7 @@ import { createProblemFiles } from "./commands/createProblem"
 import { crawlSolvedProblems } from "./commands/crawlProblems"
 import { updateReadme } from './commands/updateReadme';
 import { pushToGithub } from './commands/pushToGithub';
+import { runTestCases } from './commands/runTestCases'
 
 
 
@@ -37,12 +38,18 @@ export function activate(context: vscode.ExtensionContext) {
         await pushToGithub(config)
     })
 
+    let disposableRunTestCases = vscode.commands.registerCommand('onCommand.extension.runTestCases', async () => {
+        const config = await getConfig()
+        await runTestCases(config)
+    })
+
 
     context.subscriptions.push(disposableOpenProblem);
     context.subscriptions.push(disposableCreateProblemFiles);
     context.subscriptions.push(disposableCrawlSolved);
     context.subscriptions.push(disposableUpdateReadme);
     context.subscriptions.push(disposablePushToGithub);
+    context.subscriptions.push(disposableRunTestCases);
     
 }
 

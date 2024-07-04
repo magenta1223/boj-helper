@@ -2,7 +2,7 @@
     "name": "boj-helper",
     "displayName": "boj-helper",
     "description": "",
-    "version": "0.1.5",
+    "version": "0.1.6",
     "engines": {
         "vscode": "^1.90.0"
     },
@@ -14,7 +14,8 @@
         "onCommand:extension.createProblemFiles",
         "onCommand:extension.crawlSolved",
         "onCommand:extension.updateReadme",
-        "onCommand:extension.pushToGithub"
+        "onCommand:extension.pushToGithub",
+        "onCommand:extension.runTestCases"
     ],
     "main": "./dist/extension.js",
     "contributes": {
@@ -38,6 +39,10 @@
             {
                 "command": "onCommand.extension.pushToGithub",
                 "title": "BOJ Helper: push to github repository"
+            },
+            {
+                "command": "onCommand.extension.runTestCases",
+                "title": "BOJ Helper: Run Test Cases"
             }
         ],
         "configuration": {

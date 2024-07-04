@@ -223,9 +223,6 @@ function getExistingFiles(problemDir:string){
 
 
 export function refineMeta(){
-    // 1. problems하위의 모든 문제를 가져오고
-    // 2. 그 메타데이터를 불러와서
-    // 3. 다시 indent 넣어서 저장 
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) {
         return [];
