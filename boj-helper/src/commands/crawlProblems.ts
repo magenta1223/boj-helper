@@ -14,10 +14,7 @@ export async function crawlSolvedProblems(config:Config){
         return;
     }
 
-    vscode.window.showInformationMessage('CRAWL: START')
-    const crawler = await new Crawler(config.bojID, bojPSWD, workspaceFolders[0].uri.fsPath, config.language, config.chromePath)
-    vscode.window.showInformationMessage('CRAWL: Init')
-    crawler.crawl()
-    vscode.window.showInformationMessage('CRAWL: Crawl')
+    const crawler = new Crawler(config.bojID, bojPSWD, workspaceFolders[0].uri.fsPath, config.language, config.chromePath)
+    await crawler.crawl()
 
 }

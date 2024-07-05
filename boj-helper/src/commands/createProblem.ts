@@ -10,7 +10,7 @@ export async function createProblemFiles(config:Config){
         return;
     }
 
-    vscode.window.showInformationMessage(`Create Problem: ${problemNumber}`)
+    vscode.window.showInformationMessage(`문제를 생성합니다: ${problemNumber}`)
     createProblem(config.bojID, problemNumber, config.language, true, "", "")
 };
 

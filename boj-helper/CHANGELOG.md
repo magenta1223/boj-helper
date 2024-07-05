@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.1.8]
+- 알림 방식 변경 (information message -> progress)
+- 알림 횟수 감소
+
 ## [0.1.6]
 - 테스트케이스 실행 기능이 추가되었습니다.
     - `Ctrl+Shift+P` -> `BOJ Helper: Run Testcase` -> 문제 번호 입력

@@ -18,19 +18,12 @@ export class Crawler {
     private readonly chromePath:string;
 
     constructor(_id: string, _pswd: string, workingDirectory: string, language:string, chromePath:string) {
-        console.log("Start crawling source codes you have solved");
         this.id = _id;
         this.password = _pswd;
         this.problemDir = path.join(workingDirectory, "problems");
         this.delayms = 5000;
         this.language = language;
         this.chromePath = chromePath
-        
-        if (!fs.existsSync(this.problemDir)) {
-            vscode.window.showInformationMessage(`${this.problemDir}가 생성되었습니다.`)
-            fs.mkdirSync(this.problemDir);
-        }
-        vscode.window.showInformationMessage('로그인 시작');
     }
 
     async initBrowser(){
@@ -48,8 +41,7 @@ export class Crawler {
     } 
 
     async get(url:string){
-        console.log(`now: ${url}`)
-        vscode.window.showInformationMessage(`CRAWL: loading ${url}`)
+        // vscode.window.showInformationMessage(`CRAWL: loading ${url}`)
 
         let page = await this.browser.newPage();
         await page.goto(url, {waitUntil:"load"})
@@ -60,7 +52,6 @@ export class Crawler {
     }
 
     async clean() {
-        console.log("Removing Invalid files ..");
         const problemsDir = path.join(__dirname, 'problems');
         const problems = fs.readdirSync(problemsDir).map(file => path.join(problemsDir, file));
 
@@ -72,15 +63,77 @@ export class Crawler {
     }
 
     async crawl(){
-        vscode.window.showInformationMessage('CRAWL: Open Browser')
-        await this.initBrowser()
-        vscode.window.showInformationMessage('CRAWL: Login')
-        await this.login()
-        vscode.window.showInformationMessage(`CRAWL: Get solved problems`)
-        const toBeUpdated = await this.getSolvedProblems()
-        vscode.window.showInformationMessage(`CRAWL: Crawl sources`)
-        await this.crawlSources(toBeUpdated)
-        this.browser.close()
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: "Crawling",
+            cancellable: true
+        }, async (progress, token) => {
+            let isCancelled = false 
+
+            if (!fs.existsSync(this.problemDir)) {
+                progress.report({ increment: 1, message: `Generating problems directory` });
+                vscode.window.showInformationMessage(`${this.problemDir}가 생성되었습니다.`)
+                fs.mkdirSync(this.problemDir);
+            }
+
+            progress.report({ increment: 1, message: `Open browser..` });
+            if (token.isCancellationRequested) {
+                vscode.window.showInformationMessage('작업이 취소되었습니다.');
+                isCancelled = true 
+            }
+            if (!isCancelled){
+                await this.initBrowser()
+            }
+
+            progress.report({ increment: 1, message: `Login..` });
+            if (token.isCancellationRequested) {
+                vscode.window.showInformationMessage('작업이 취소되었습니다.');
+                isCancelled = true 
+            }
+            if (!isCancelled){
+                await this.login()
+            }
+            
+            progress.report({ increment: 1, message: `Get solved problems..` });
+            if (token.isCancellationRequested) {
+                vscode.window.showInformationMessage('작업이 취소되었습니다.');
+                isCancelled = true 
+            }
+            let toBeUpdated:string[] = [];
+            if (!isCancelled){
+                toBeUpdated = await this.getSolvedProblems()
+            }
+            
+            
+            // await this.crawlSources(toBeUpdated)
+            if (!isCancelled){
+                const totalProblems = toBeUpdated.length;
+                for (let i = 0; i < totalProblems; i++) {
+                    if (token.isCancellationRequested) {
+                        vscode.window.showInformationMessage('작업이 취소되었습니다.');
+                        isCancelled = true;
+                        break;
+                    }
+                    let num = toBeUpdated[i];
+                    let increment = (1 / (totalProblems+3)) * 100;
+                    progress.report({ increment: increment, message: `${i + 1} / ${totalProblems}: ${num}번 문제` });
+                    let { lastAcSubmission, submitTime } = await this.getLastAcSubmission(num);
+                    let sourceCode = await this.crawlCode(num, lastAcSubmission);
+                    createProblem(this.id, num, this.language, false, sourceCode, submitTime);
+                }
+            }
+
+
+            this.browser.close()
+
+            if (isCancelled){
+                vscode.window.showErrorMessage("작업이 취소되었습니다.")
+            } else {
+                vscode.window.showInformationMessage("작업이 완료되었습니다.")
+
+            }
+        })
+
     }
 
 
@@ -108,23 +161,10 @@ export class Crawler {
     }
 
     async getSolvedProblems(): Promise<string[]>{
-
-        // let url = `https://solved.ac/profile/${this.id}/solved`
-        // let maxPage = await this.getMaxPage(url)
-        // let allProblems = await this.getAllProblems(url, maxPage)
-
         let url =  `https://www.acmicpc.net/user/${this.id}`
         let allProblems = await this.getAllProblems(url)
-
-
         let existingFiles = this.getExistingFiles()
-
-        // console.log(`Problems Directory: ${this.problemDir}`)
-        // console.log(`All problems: ${allProblems}`)
-        // console.log(`Already collected: ${Array.from(existingFiles).join(' ')}`)
-        // total problems 처리 
         let toBeUpdated = allProblems.filter(item => !existingFiles.has(item))
-        console.log(`To be updated: ${toBeUpdated}`)
         return toBeUpdated 
     }
 
@@ -136,6 +176,7 @@ export class Crawler {
             problems.push($(el).text().trim())
         })
         return problems
+
     }
 
     getExistingFiles(){
@@ -148,15 +189,6 @@ export class Crawler {
                 let res = index > 0 ? dir.substring(0, index) : dir
                 return res;
         }));
-    }
-
-    async crawlSources(solvedProblems:string[]){
-        for (let i=0;i<solvedProblems.length;i++){
-            let num = solvedProblems[i]
-            let {lastAcSubmission, submitTime} = await this.getLastAcSubmission(num)
-            let sourceCode = await this.crawlCode(num, lastAcSubmission)
-            createProblem(this.id, num, this.language, false, sourceCode, submitTime)
-        }
     }
 
     async getLastAcSubmission(num:string):Promise<{lastAcSubmission:string, submitTime:string}>{
@@ -186,18 +218,12 @@ export class Crawler {
                     let day = submitTime.slice(iMonth+2,iDate).padStart(2, '0')
                     let HMS = submitTime.slice(iDate+2,submitTime.length)
 
-                    console.log(submitTime)
-                    console.log(`iYear:${iYear}, year:${year}\niMonth:${iYear}, month:${month}\niDate:${iYear}, day:${day}\nHMS: ${HMS}`)
-
-
-
                     submitTime = `${year}-${month}-${day} ${HMS}`
                     // submitTime = submitTime.replace('년 ', '-').replace('월 ', '-').replace('일', '')
                 }
                 break;
             }
         }
-        console.log(`${num}번 문제 제출번호: ${lastAcSubmission}`)
         return {
             lastAcSubmission: lastAcSubmission || "",
             submitTime : submitTime || ""
@@ -215,7 +241,6 @@ export class Crawler {
             const text = $(element).text();
             sourceCode.push(utils.cleanSourceCode(text))
         });
-        console.log(`${num}번 문제: 완료\n`)
         return sourceCode.join("\n")
     }
 }

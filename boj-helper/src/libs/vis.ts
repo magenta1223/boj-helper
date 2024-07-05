@@ -58,15 +58,7 @@ export async function renderSvg(config:Config){
         executablePath: config.chromePath, 
     });
 
-    vscode.window.showInformationMessage(`vis: browser on`)
-
     const page = await browser.newPage();
-
-    // const d3Path = path.resolve(__dirname, 'node_modules', 'd3', 'dist', 'd3.min.js'); // D3.js 파일 경로 설정
-    // <script src="https://d3js.org/d3.v7.min.js" async></script>
-    // <link href="https://cdn.jsdelivr.net/npm/noto-sans-kr@0.1.1/styles.min.css" rel="stylesheet" async>
-
-
 
     const content = `
         <html>
@@ -97,23 +89,8 @@ export async function renderSvg(config:Config){
         </html>
     `;
 
-    // 지금 evaluate에서 제대로 작동을 안함.
-    // evaluate 부분을 그냥 script로 적어버리고 
-    // agg, raw, radius 등 변수를 page로 보내버리면 됨. 
-
-
-    // const d3Path = process.env.NODE_ENV === 'development'
-    //     ? path.resolve(__dirname, "../src/resources/js/d3.min.js")
-    //     : path.resolve(__dirname, "./src/resources/js/d3.min.js")
-    // const d3Content = fs.readFileSync(d3Path, 'utf8');
-    // await page.evaluate(d3Content);
-
-    vscode.window.showInformationMessage(`setting content`)
     await page.setContent(content);
-
-    vscode.window.showInformationMessage(`start evaluate`)
     const svgString = await page.evaluate((scale, agg, raw, radius, width, height, userInfo, config, NameColors) => {
-        
         const addText = (text:string, start:number, fontsize:number) => {
             let textEl = svg.append("text")
             textEl
@@ -224,27 +201,6 @@ export async function renderSvg(config:Config){
         drawDonut(0.8, 0.85, agg.detail)
         drawDonut(0.9, 1.0, agg.abb)
 
-
-        // donutChart.selectAll('pieces')
-        //     .data(pie((data.abb)))
-        //     .enter()
-        //     .append('text')
-        //     .text(d => d.data.name)
-        //     .attr('transform', d => `translate(${arcOuter.centroid(d)})`)
-        //     .style('text-anchor', 'middle')
-        //     .style('font-size', 15)
-            // 생성된 SVG를 문자열로 변환하여 반환
-        
-
-        // vscode.window.showInformationMessage(`render streak`)
-
-
-        "#F7F8F9"
-        // const streak = svg.append('g')
-        //     .attr("transform", `translate(${2*radius+3*margin},${(height-2*radius+margin)})`);
-
-        
-
         let bgX = 2*radius+2*margin; let bgY = height-2*radius-margin
 
         const streakBG = svg.append('rect')
@@ -266,9 +222,6 @@ export async function renderSvg(config:Config){
             .style('color', 'black')
             .style('font-family', 'Noto Sans, sans-serif')
             .style("font-weight", "bold")
-
-        // const streak = svg.append('g')
-        //     .attr("transform", `translate(${2*radius+4*margin},${(height-2*radius+2*margin)})`);
 
         const streak = svg.append('g')
             .attr("transform", `translate(${bgX+margin},${bgY+2.3*margin})`);
@@ -324,19 +277,13 @@ export async function renderSvg(config:Config){
         // 1. legend
 
         // 2. 몰라 
-
-
-        console.log("done")
-
         const svgElement = document.getElementById('svg');
         
-        console.log(svgElement ? new XMLSerializer().serializeToString(svgElement) : null)
 
         return svgElement ? new XMLSerializer().serializeToString(svgElement) : null;
     }, scale, agg, raw, radius, width, height, userInfo, config, NameColors);
 
-    // await page.close()
-    // await browser.close()
+
     return svgString;
 }
 
