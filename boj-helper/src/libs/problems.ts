@@ -115,6 +115,17 @@ export async function createProblem(bojID:string, problemNumber:string,language:
         const uri = vscode.Uri.file(PATHS.file);
         const doc = await vscode.workspace.openTextDocument(uri);
         await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.Two });
+        // 옮기기 
+        const terminals = vscode.window.terminals;
+        let terminal: vscode.Terminal;
+        if (terminals.length > 0) {
+            terminal = terminals[0]; // 첫 번째 터미널을 선택
+        } else {
+            terminal = vscode.window.createTerminal(`cmd`);
+            terminal.show();
+        }
+        terminal.sendText(`cd ${PATHS.folder}`)
+
     }
 
 }

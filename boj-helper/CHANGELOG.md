@@ -1,5 +1,10 @@
 # Change Log
 
+## [0.1.9]
+- 문제 생성 시 자동으로 해당 폴더로 이동 
+- README 갱신 시 최상단으로 이동해 푼 문제를 problems로 옮길 때 빈 폴더만 남는 현상 제거 
+
+
 ## [0.1.8]
 - 알림 방식 변경 (information message -> progress)
 - 알림 횟수 감소

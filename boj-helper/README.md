@@ -32,7 +32,44 @@
 - boj-helper.chromePath: path of chrome.exe. default: C:/Program Files/Google/Chrome/Application/chrome.exe"
  
 
+
+
+## Guidelines
+
+### Initialize 
+
+1. Install Google Chrome (or Update Google Chrome). Add the path of 
+2. Update vscode(>=1.9.0)
+3. Generate New Github Repository
+4. Press `Ctrl+,` and search `boj-helper` 
+    - Add your Baekjoon Online Judge ID to `boj-helper.BOJID`
+    - Select the programming language for solving the problems to `boj-helper.language`. Valid options are `python`, `cpp`, `c`, `java`, and `rust`.
+    - add your git username to `boj-helper.gitUsername`
+    - add your git email to `boj-helper.gitEmail`
+    - add your github repository to `boj-helper.gitAddress` (e.g. https://github.com/%username%/%repository%.git).
+    - add the path of `chrome.exe` to `boj-helper.chromePath` 
+
+
+5. `Ctrl+Shift+P` -> `BOJ Helper: Crawl Solved Problems`
+    - This commands requires Baekjoon online Judge passwords for crawling your source codes of problems you solved before. 
+
+6. `Ctrl+Shift+P` -> `BOJ Helper: Update README.md`
+7. `Ctrl+Shift+P` -> `BOJ Helper: push to github repository`
+
+
+### Solve Problems 
+1. `Ctrl+Shift+P` -> `BOJ Helper: Create Problem`
+2. Solve Problems.
+3. `Ctrl+Shift+P` -> `BOJ Helper: push to github repository`
+
+
+
 ## Release Notes
+
+## 0.1.9
+- 문제 생성 시 자동으로 해당 폴더로 이동 
+- README 갱신 시 최상단으로 이동해 푼 문제를 problems로 옮길 때 빈 폴더만 남는 현상 제거 
+
 
 ### 0.1.8
 - 알림 방식 변경 (information message -> progress)
@@ -75,32 +112,3 @@
     - BOJ Helper: Crawl Solved Problems
     - BOJ Helper: Update README.md
     - BOJ Helper: push to github repository
-
-
-## Guidelines
-
-### Initialize 
-
-1. Install Google Chrome (or Update Google Chrome). Add the path of 
-2. Update vscode(>=1.9.0)
-3. Generate New Github Repository
-4. Press `Ctrl+,` and search `boj-helper` 
-    - Add your Baekjoon Online Judge ID to `boj-helper.BOJID`
-    - Select the programming language for solving the problems to `boj-helper.language`. Valid options are `python`, `cpp`, `c`, `java`, and `rust`.
-    - add your git username to `boj-helper.gitUsername`
-    - add your git email to `boj-helper.gitEmail`
-    - add your github repository to `boj-helper.gitAddress` (e.g. https://github.com/%username%/%repository%.git).
-    - add the path of `chrome.exe` to `boj-helper.chromePath` 
-
-
-5. `Ctrl+Shift+P` -> `BOJ Helper: Crawl Solved Problems`
-    - This commands requires Baekjoon online Judge passwords for crawling your source codes of problems you solved before. 
-
-6. `Ctrl+Shift+P` -> `BOJ Helper: Update README.md`
-7. `Ctrl+Shift+P` -> `BOJ Helper: push to github repository`
-
-
-### Solve Problems 
-1. `Ctrl+Shift+P` -> `BOJ Helper: Create Problem`
-2. Solve Problems.
-3. `Ctrl+Shift+P` -> `BOJ Helper: push to github repository`

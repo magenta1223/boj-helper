@@ -28,6 +28,17 @@ export async function updateReadme(config:Config){
             solved : path.join(wd, "problems"),
             readme : path.join(wd, "README.md"),
         };
+
+        const terminals = vscode.window.terminals;
+        let terminal: vscode.Terminal;
+        if (terminals.length > 0) {
+            terminal = terminals[0]; // 첫 번째 터미널을 선택
+        } else {
+            terminal = vscode.window.createTerminal(`cmd`);
+            terminal.show();
+        }
+        terminal.sendText(`cd ${PATHS.newlySolved}`)
+
     
         const problems = storedProblemsAt(PATHS.solved, "").concat(storedProblemsAt(PATHS.newlySolved, PATHS.solved))
         progress.report({ increment: 33, message: `Get solved problems.. ${problems.length} problems solved.` });
