@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.1.10]
+- inline 수식이 있는 문제(mjxcontainer를 사용한 문제)를 열 때, webview에서 수식을 렌더링하지 못하는 이슈 발견 
+    - webview대신 markdown으로 열기
+    
 ## [0.1.9]
 - 문제 생성 시 자동으로 해당 폴더로 이동 
 - README 갱신 시 최상단으로 이동해 푼 문제를 problems로 옮길 때 빈 폴더만 남는 현상 제거 

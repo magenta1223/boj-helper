@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
-import { Config } from "../libs/config"
 import * as fs from 'fs';
 import * as path from 'path';
-import { spawnSync } from 'child_process';
 import * as utils from "../libs/utils"
+import { Config } from "../libs/config"
+import { spawnSync } from 'child_process';
+import { getProblemPath } from '../libs/problems';
 
 
 export async function runTestCases(config:Config){
@@ -22,32 +23,43 @@ export async function runTestCases(config:Config){
     
 
     // 2. 문제가 존재하는지 확인
+    // const workingDirectory = workspaceFolders[0].uri.fsPath
+    // let problem =  fs.readdirSync(workingDirectory).filter(file => {
+    //     let fullPath = path.join(workingDirectory, file);
+    //     return fs.lstatSync(fullPath).isDirectory() && file.includes(`${problemNumber}번`);
+    // }).map(dir => {
+    //     return path.join(workingDirectory, dir);
+    // })
+
+
+    // if (problem.length === 0){
+    //     let problemsPath = path.join(workingDirectory, "problems")
+    //     problem =  fs.readdirSync(problemsPath).filter(file => {
+    //         let fullPath = path.join(problemsPath, file);
+    //         return fs.lstatSync(fullPath).isDirectory() && file.includes(`${problemNumber}번`);
+    //     }).map(dir => {
+    //         return path.join(problemsPath, dir);
+    //     })
+
+    //     if (problem.length === 0){
+    //         vscode.window.showErrorMessage(`${problemNumber}번 문제가 존재하지 않습니다.`)
+    //         return ; 
+    //     }
+    // }
+
+
     const workingDirectory = workspaceFolders[0].uri.fsPath
-    let problem =  fs.readdirSync(workingDirectory).filter(file => {
-        let fullPath = path.join(workingDirectory, file);
-        return fs.lstatSync(fullPath).isDirectory() && file.includes(`${problemNumber}번`);
-    }).map(dir => {
-        return path.join(workingDirectory, dir);
-    })
+
+    let problemPath = getProblemPath(workingDirectory, problemNumber)
 
 
-    if (problem.length === 0){
-        let problemsPath = path.join(workingDirectory, "problems")
-        problem =  fs.readdirSync(problemsPath).filter(file => {
-            let fullPath = path.join(problemsPath, file);
-            return fs.lstatSync(fullPath).isDirectory() && file.includes(`${problemNumber}번`);
-        }).map(dir => {
-            return path.join(problemsPath, dir);
-        })
-
-        if (problem.length === 0){
-            vscode.window.showErrorMessage(`${problemNumber}번 문제가 존재하지 않습니다.`)
-            return ; 
-        }
+    if (problemPath === ""){
+        vscode.window.showErrorMessage(`${problemNumber}번 문제가 존재하지 않습니다.`)
+        return ; 
     }
 
-    let scriptPath = path.join(problem[0], `${path.basename(problem[0])}.${utils.getFileExt(config.language)}`);
-    let testCases = fs.readFileSync(path.join(problem[0], "testCases.txt"), "utf-8").split("\n")
+    let scriptPath = path.join(problemPath, `${path.basename(problemPath)}.${utils.getFileExt(config.language)}`);
+    let testCases = fs.readFileSync(path.join(problemPath, "testCases.txt"), "utf-8").split("\n")
 
     // 2. testCases.txt 파일이 input, output 쌍이 맞는지 확인 
     let {res, nTestCases, Inputs, Outputs} = validateTestCases(testCases)

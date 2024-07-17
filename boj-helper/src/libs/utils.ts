@@ -3,6 +3,30 @@ import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 
+
+const specialSpaces = [
+    '\u0020',
+    '\u00A0',
+    '\u2000',
+    '\u2001',
+    '\u2002',
+    '\u2003',
+    '\u2004', 
+    '\u2005',
+    '\u2006',
+    '\u2007',
+    '\u2008',
+    '\u2009',
+    '\u200A', // Hair Space
+    '\u200B', // Zero-width Space
+    '\u2028',
+    '\u205F',
+    '\u3000',
+    '\u2800'  // Braille Blank
+  ];
+const specialSpacesRegex = new RegExp(specialSpaces.join('|'), 'g');
+
+
 export function getFileExt(language: string): string {
     const f_exts: { [key: string]: string } = {
         "python": "py",
@@ -86,10 +110,9 @@ export function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
     let markdown = ""
     let $el = $(el)
     let tagName = el.name.toLocaleLowerCase()
-    let text = $el.text().replaceAll("\n", "").trim()
+    let text = $el.text().replaceAll("\n", "").trim().replaceAll("\\(", "$").replaceAll("\\)", "$").replace(specialSpacesRegex, ' ').replaceAll(" \\", "\\")
     let isHidden = $el.attr('style')?.includes('display: none') || false;
     
-    // display:none
     if (isHidden){
         return markdown
     }
@@ -115,8 +138,9 @@ export function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
             markdown += `| ${colTexts.join(' | ')} |\n`;
         });
         return markdown
-    }  
-    
+    } 
+
+
     // no children 
     if ($el.children().length === 0){
         switch (tagName) {
@@ -241,3 +265,5 @@ export function refineMeta(){
 
     })
 }
+
+

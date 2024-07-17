@@ -41,7 +41,7 @@
 1. Install Google Chrome (or Update Google Chrome). Add the path of 
 2. Update vscode(>=1.9.0)
 3. Generate New Github Repository
-4. Press `Ctrl+,` and search `boj-helper` 
+4. Press `Ctrl+","` and search `boj-helper` 
     - Add your Baekjoon Online Judge ID to `boj-helper.BOJID`
     - Select the programming language for solving the problems to `boj-helper.language`. Valid options are `python`, `cpp`, `c`, `java`, and `rust`.
     - add your git username to `boj-helper.gitUsername`
@@ -55,7 +55,7 @@
 
 6. `Ctrl+Shift+P` -> `BOJ Helper: Update README.md`
 7. `Ctrl+Shift+P` -> `BOJ Helper: push to github repository`
-
+8. `Ctrl+","`, search `markdown.math`, and check (enabling rendering of equations using Katex)
 
 ### Solve Problems 
 1. `Ctrl+Shift+P` -> `BOJ Helper: Create Problem`
@@ -65,6 +65,11 @@
 
 
 ## Release Notes
+
+## 0.1.10
+- inline 수식이 있는 문제(mjxcontainer를 사용한 문제)를 열 때, webview에서 수식을 렌더링하지 못하는 이슈 발견 
+    - webview대신 markdown으로 열기
+    
 
 ## 0.1.9
 - 문제 생성 시 자동으로 해당 폴더로 이동 

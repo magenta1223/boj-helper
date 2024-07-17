@@ -66,9 +66,9 @@ export const tierNames = [
     "Ruby V", "Ruby IV", "Ruby III", "Ruby II", "Ruby I",
 ];
 
-export async function createProblem(bojID:string, problemNumber:string,language:string, openWebView:boolean,code:string, submitTime:string){
+export async function createProblem(bojID:string, problemNumber:string,language:string, openWebView:boolean,  code:string, submitTime:string){
     const problemUrl = `https://www.acmicpc.net/problem/${problemNumber}`;
-    const problem = await getProblem(problemNumber, problemUrl);
+    const problem = await fetchProblem(problemNumber, problemUrl);
 
     // 문제 생성 
     const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -105,16 +105,25 @@ export async function createProblem(bojID:string, problemNumber:string,language:
     }
 
     if (openWebView){
-        const panel = vscode.window.createWebviewPanel(
-            'problemWebView', 
-            `${problem.title}`, 
-            vscode.ViewColumn.One, 
-            {}
-        );
-        panel.webview.html = problem.html 
-        const uri = vscode.Uri.file(PATHS.file);
-        const doc = await vscode.workspace.openTextDocument(uri);
-        await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.Two });
+        // const panel = vscode.window.createWebviewPanel(
+        //     'problemWebView', 
+        //     `${problem.title}`, 
+        //     vscode.ViewColumn.One, 
+        //     {}
+        // );
+        // panel.webview.html = problem.html 
+
+
+        const markdownUri = vscode.Uri.file(PATHS.markdown);
+        const docMd = await vscode.workspace.openTextDocument(markdownUri);
+        await vscode.window.showTextDocument(docMd, { viewColumn: vscode.ViewColumn.One });
+        await vscode.commands.executeCommand('markdown.showPreview', markdownUri);
+
+        await vscode.window.showTextDocument(docMd, { preview:false });
+        await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+
+        const docProblem = await vscode.workspace.openTextDocument(vscode.Uri.file(PATHS.file));
+        await vscode.window.showTextDocument(docProblem, { viewColumn: vscode.ViewColumn.Two });
         // 옮기기 
         const terminals = vscode.window.terminals;
         let terminal: vscode.Terminal;
@@ -131,7 +140,7 @@ export async function createProblem(bojID:string, problemNumber:string,language:
 }
 
 
-export async function getProblem(problemNumber:string, url: string): Promise<Problem> {
+export async function fetchProblem(problemNumber:string, url: string): Promise<Problem> {
     try {
         // fetch html according to problemNumber 
         let response = await axios.get(url, {
@@ -174,6 +183,7 @@ async function getContent(problemNumber:string, $:cheerio.CheerioAPI){
     let title = `${problemNumber}번： ${name}`
     let tier = await getTier(problemNumber)
 
+    
     // clean html 
     $('button').each((i, elem) => {$(elem).remove();});
     $('span.problem-label').each((i, elem) => {$(elem).remove();});
@@ -216,15 +226,13 @@ async function getContent(problemNumber:string, $:cheerio.CheerioAPI){
     for (let i=0;i<sampleInputs.length;i++){
         let input = $(sampleInputs[i]).html() || ""
         let output = $(sampleOutputs[i]).html() || ""
-        // testCases.push({
-        //     input: input.replace(/\n$/, ''),
-        //     output: output.replace(/\n$/, '')
-        // })
+
         testCases += `Input:(\n${input})\n\nOutput:(\n${output})\n\n`
     }
 
-
-    let desiredContent = content.children('div').slice(2).toArray().map(elem => $.html(elem)).join('');
+    // mathjax 있으면 바꿔야 함. 
+    
+    let desiredContent = content.children('div').slice(2).toArray().map(elem => $.html(elem)).join('').replaceAll(' ', ' ');
     return {name, title, tier, testCases, desiredContent}
 }
 
@@ -376,4 +384,32 @@ export function problemsToMarkdown(problems:MetaData[], problemPath:string):stri
         mdTable += `| ${rows.join(' | ')} |\n`;
     })
     return mdTable 
+}
+
+
+export function getProblemPath(workingDirectory:string, problemNumber:string){
+
+    let problem =  fs.readdirSync(workingDirectory).filter(file => {
+        let fullPath = path.join(workingDirectory, file);
+        return fs.lstatSync(fullPath).isDirectory() && file.includes(`${problemNumber}번`);
+    }).map(dir => {
+        return path.join(workingDirectory, dir);
+    })
+
+
+    if (problem.length === 0){
+        let problemsPath = path.join(workingDirectory, "problems")
+        problem =  fs.readdirSync(problemsPath).filter(file => {
+            let fullPath = path.join(problemsPath, file);
+            return fs.lstatSync(fullPath).isDirectory() && file.includes(`${problemNumber}번`);
+        }).map(dir => {
+            return path.join(problemsPath, dir);
+        })
+        if (problem.length === 0){
+            vscode.window.showErrorMessage(`${problemNumber}번 문제가 존재하지 않습니다.`)
+            return '';
+        } 
+    }
+
+    return problem[0]
 }
