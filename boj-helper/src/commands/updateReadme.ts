@@ -4,7 +4,6 @@ import * as vscode from 'vscode';
 import { storedProblemsAt, problemsToMarkdown } from "../libs/problems"
 import { Config } from "../libs/config";
 import { visualizeStatistics } from './visStatitstics';
-import { refineMeta } from "../libs/utils"
 
 
 export async function updateReadme(config:Config){

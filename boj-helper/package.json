@@ -133,7 +133,7 @@
         "json-stringify-pretty-compact": "^4.0.0",
         "puppeteer": "^22.11.2",
         "simple-git": "^3.25.0",
-        "vsce": "^1.97.0",
+        "vsce": "^1.103.1",
         "xml-formatter": "^3.6.2"
     }
 }

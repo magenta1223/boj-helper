@@ -2,6 +2,8 @@ import * as cheerio from 'cheerio';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as vscode from 'vscode';
+import stringify from 'json-stringify-pretty-compact';
 
 
 const specialSpaces = [
@@ -234,8 +236,6 @@ export async function moveFolder(source: string, destination: string): Promise<v
     }
 }
 
-import stringify from 'json-stringify-pretty-compact';
-import * as vscode from 'vscode';
 
 function getExistingFiles(problemDir:string){
     return new Set(
@@ -246,6 +246,7 @@ function getExistingFiles(problemDir:string){
 }
 
 
+// to updator 
 export function refineMeta(){
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) {
