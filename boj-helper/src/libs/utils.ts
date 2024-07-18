@@ -1,9 +1,7 @@
-import * as cheerio from 'cheerio';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as vscode from 'vscode';
-import stringify from 'json-stringify-pretty-compact';
+
 
 
 const specialSpaces = [
@@ -26,7 +24,7 @@ const specialSpaces = [
     '\u3000',
     '\u2800'  // Braille Blank
   ];
-const specialSpacesRegex = new RegExp(specialSpaces.join('|'), 'g');
+export const specialSpacesRegex = new RegExp(specialSpaces.join('|'), 'g');
 
 
 export function getFileExt(language: string): string {
@@ -100,7 +98,7 @@ const MDprefix: Record<string, string> = {
     [Symbol.iterator]: "[Symbol.iterator]"
 }
 
-function getPrefix(tagName:string){
+export function getPrefix(tagName:string){
     if (tagName in MDprefix){
         return MDprefix[tagName]
     } else {
@@ -108,95 +106,6 @@ function getPrefix(tagName:string){
     }
 }
 
-export function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
-    let markdown = ""
-    let $el = $(el)
-    let tagName = el.name.toLocaleLowerCase()
-    let text = $el.text().replaceAll("\n", "").trim().replaceAll("\\(", "$").replaceAll("\\)", "$").replace(specialSpacesRegex, ' ').replaceAll(" \\", "\\")
-    let isHidden = $el.attr('style')?.includes('display: none') || false;
-    
-    if (isHidden){
-        return markdown
-    }
-    
-    // table 
-    if (tagName === "table"){
-        let table = $('#problem-info');            
-        let headers = table.find('thead th');
-        let headerTexts: string[] = [];
-        headers.each((index, element) => {
-            headerTexts.push($(element).text().trim());
-        });
-        markdown += `| ${headerTexts.join(' | ')} |\n`;
-        markdown += `| ${headerTexts.map(() => '---').join(' | ')} |\n`;
-    
-        let rows = table.find('tbody tr');
-        rows.each((index, row) => {
-            let cols = $(row).find('td');
-            let colTexts: string[] = [];
-            cols.each((index, col) => {
-                colTexts.push($(col).text().trim());
-            });
-            markdown += `| ${colTexts.join(' | ')} |\n`;
-        });
-        return markdown
-    } 
-
-
-    // no children 
-    if ($el.children().length === 0){
-        switch (tagName) {
-            case 'p':
-            case 'li':
-            case 'h1':
-            case 'h2':
-            case 'h3':
-                markdown = `${getPrefix(tagName)}${text}\n\n`;
-                break;
-            case 'pre':
-                markdown = `<pre>${$el.html()}</pre>\n`;
-                break; 
-            case 'a':
-                markdown = `[${text}](${$el.attr('href')})`;
-                break; 
-            case 'sub':
-                markdown = `<sub>${text}</sub>`
-                break; 
-            case 'code':
-                markdown = `<code>${text}</code>`;
-                break;
-            case 'blockquote':
-                markdown += '> ' + text.trim().replace(/\n/g, '\n> ') + '\n\n';
-                break;
-            case 'br':
-                markdown += '\n';
-                break;
-            case 'span':
-                markdown += text; // 상위 태그가 반드시 존재
-                break;
-            case 'img':
-                if ($el.attr('src')?.includes('solved.ac')){
-                    markdown += `<img src="${$el.attr('src')}" style="height:20px" />`
-                } else {
-                    markdown += $el.html()
-                }
-                break; 
-            default:                        
-                break; 
-        }
-        return markdown 
-    }
-
-    markdown += getPrefix(tagName)
-    $el.contents().each((i, content) => {
-        if (content.type === "text"){
-            markdown += $(content).text().trimStart()
-        } else if (content.type === "tag"){
-            markdown += HTM($, content);
-        }
-    });
-    return markdown + '\n'
-}
 
 
 export async function getUserInfo(boj_id:string): Promise<{solvedCount:number, rating:number, userClass:number,tier:number}>{
@@ -237,34 +146,10 @@ export async function moveFolder(source: string, destination: string): Promise<v
 }
 
 
-function getExistingFiles(problemDir:string){
+export function getExistingFiles(problemDir:string){
     return new Set(
         fs.readdirSync(problemDir).filter(file => {
             let fullPath = path.join(problemDir, file);
             return fs.lstatSync(fullPath).isDirectory() && file.includes("번");
         }));
 }
-
-
-// to updator 
-export function refineMeta(){
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders) {
-        return [];
-    }
-    let problemDir = path.join(workspaceFolders[0].uri.fsPath, "problems")
-
-    let allProblems = getExistingFiles(problemDir)
-
-    allProblems.forEach((dir, index) => {
-        let mdpath = path.join(problemDir, dir, "metadata.json")
-        let metadata = JSON.parse(fs.readFileSync(mdpath).toString('utf-8'))
-        fs.writeFileSync(mdpath, stringify(metadata, {
-            indent: 4,
-        }));
-        fs.rmSync(path.join(problemDir, dir, "metadata2.json"))
-
-    })
-}
-
-

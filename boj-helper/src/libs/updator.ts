@@ -5,11 +5,27 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import stringify from 'json-stringify-pretty-compact';
 
-// 
-
-export const updatorFuncs:{[key:string]: Function} = {}
+import * as utils from '../libs/utils'
 
 
+export const updatorFuncs:Function[] = []
+export const ver2idx:{[key:string]: number} = {}
+let idx = 0 
+
+
+export function update(version:number){
+    let a = Math.floor(version/10000)
+    version -= a*10000 
+    let b = Math.floor(version/100)
+    version -= b*100 
+
+    let verStr = `${a}.${b}.${version}`
+
+
+    if (verStr in ver2idx){
+        updatorFuncs[ver2idx[verStr]]()
+    } 
+}
 
 function getExistingFiles(problemDir:string){
     return new Set(
@@ -20,39 +36,50 @@ function getExistingFiles(problemDir:string){
 }
 
 
-updatorFuncs['0.0.0'] = function(){
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders) {
-        return [];
+ver2idx['0.0.0'] = idx++;
+updatorFuncs.push( 
+    function(){
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) {
+            return [];
+        }
+        let problemDir = path.join(workspaceFolders[0].uri.fsPath, "problems")
+
+        let allProblems = getExistingFiles(problemDir)
+        console.log(allProblems)
+        allProblems.forEach((dir, index) => {
+            let mdpath = path.join(problemDir, dir, "metadata.json")
+            let metadata = JSON.parse(fs.readFileSync(mdpath).toString('utf-8'))
+            fs.writeFileSync(mdpath, stringify(metadata, {
+                indent: 4,
+            }));
+
+        })
     }
-    let problemDir = path.join(workspaceFolders[0].uri.fsPath, "problems")
-
-    let allProblems = getExistingFiles(problemDir)
-
-    allProblems.forEach((dir, index) => {
-        let mdpath = path.join(problemDir, dir, "metadata.json")
-        let metadata = JSON.parse(fs.readFileSync(mdpath).toString('utf-8'))
-        fs.writeFileSync(mdpath, stringify(metadata, {
-            indent: 4,
-        }));
-
-    })
-}
+)
 
 
-updatorFuncs['0.1.10'] = function(){
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders) {
-        return [];
-    }
-    let problemDir = path.join(workspaceFolders[0].uri.fsPath, "problems")
-
-    let allProblems = getExistingFiles(problemDir)
-
-    // 1. markdown 파일 전부 읽어와서
-    // 2. 공백문자 바꾸고
-    // 3. 수식으로 변경 
-
+ver2idx['0.1.12'] = idx++;
+updatorFuncs.push( 
+    function(){
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) {
+            return [];
+        }
+        let problemDir = path.join(workspaceFolders[0].uri.fsPath, "problems")
+        let allProblems = getExistingFiles(problemDir)
     
+        allProblems.forEach((index, problem) => {
+            let problemPath = path.join(problemDir, `${problem}`, `${problem}.md`)
+            let markdown = fs.readFileSync(problemPath).toString()
+            markdown = markdown.replaceAll("\\(", "$").replaceAll("\\)", "$").replace(utils.specialSpacesRegex, ' ').replaceAll(" \\", "\\")
+            
+            fs.writeFileSync(problemPath, markdown, {
+                encoding:'utf-8'
+            })
+        })
+    }
 
-}
+    // image 이슈.. 는 귀찮으니 나중에 ~  
+)
+

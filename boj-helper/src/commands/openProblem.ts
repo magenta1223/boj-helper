@@ -17,10 +17,7 @@ export async function openProblem(config:Config){
         vscode.window.showErrorMessage(`문제가 발생했습니다. ${problem.errorMsg}`)
     } else {
 
-        // 1. 문제가 존재하는지 확인
-        // 2. 문제가 
-        // 2-1) 존재: markdown 파일 열기
-        // 2-2) 부재: create하고 markdown파일 열기 
+
         
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders) {
@@ -29,13 +26,11 @@ export async function openProblem(config:Config){
         }
 
         const workingDirectory = workspaceFolders[0].uri.fsPath
-        let problemPath = getProblemPath(workingDirectory, problemNumber)
-
-        if (problemPath === ""){
+        if (getProblemPath(workingDirectory, problemNumber) === ""){
             createProblem(config.bojID, problemNumber, config.language, false, "", "")
         }
 
-        problemPath = getProblemPath(workingDirectory, problemNumber)
+        let problemPath = getProblemPath(workingDirectory, problemNumber)
 
         // open 
         const markdownUri = vscode.Uri.file(path.join(problemPath, `${path.basename(problemPath)}.md`));

@@ -105,30 +105,21 @@ export async function createProblem(bojID:string, problemNumber:string,language:
     }
 
     if (openWebView){
-        // const panel = vscode.window.createWebviewPanel(
-        //     'problemWebView', 
-        //     `${problem.title}`, 
-        //     vscode.ViewColumn.One, 
-        //     {}
-        // );
-        // panel.webview.html = problem.html 
-
-
         const markdownUri = vscode.Uri.file(PATHS.markdown);
         const docMd = await vscode.workspace.openTextDocument(markdownUri);
         await vscode.window.showTextDocument(docMd, { viewColumn: vscode.ViewColumn.One });
         await vscode.commands.executeCommand('markdown.showPreview', markdownUri);
-
         await vscode.window.showTextDocument(docMd, { preview:false });
         await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
 
         const docProblem = await vscode.workspace.openTextDocument(vscode.Uri.file(PATHS.file));
         await vscode.window.showTextDocument(docProblem, { viewColumn: vscode.ViewColumn.Two });
-        // 옮기기 
+
+
         const terminals = vscode.window.terminals;
         let terminal: vscode.Terminal;
         if (terminals.length > 0) {
-            terminal = terminals[0]; // 첫 번째 터미널을 선택
+            terminal = terminals[0]; 
         } else {
             terminal = vscode.window.createTerminal(`cmd`);
             terminal.show();
@@ -142,7 +133,6 @@ export async function createProblem(bojID:string, problemNumber:string,language:
 
 export async function fetchProblem(problemNumber:string, url: string): Promise<Problem> {
     try {
-        // fetch html according to problemNumber 
         let response = await axios.get(url, {
             headers: {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -204,8 +194,15 @@ async function getContent(problemNumber:string, $:cheerio.CheerioAPI){
         </div>
     `)
 
-    let content = $('body > div.wrapper > div.container.content > div.row');
-    content.find('img').each((index, img) => {
+    // let content = $('body > div.wrapper > div.container.content > div.row');
+    // content.find('img').each((index, img) => {
+    //     let src = $(img).attr('src');
+    //     if (src && src.startsWith('/')) {
+    //         $(img).attr('src', 'https://www.acmicpc.net' + src);
+    //     }
+    // });
+
+    $('img').each((index, img) => {
         let src = $(img).attr('src');
         if (src && src.startsWith('/')) {
             $(img).attr('src', 'https://www.acmicpc.net' + src);
@@ -213,12 +210,6 @@ async function getContent(problemNumber:string, $:cheerio.CheerioAPI){
     });
 
     // test case 
-
-    // 1. id가 sample-input X -> tc로 만들면 된다.
-    // 1. pre.sample-data인 모든 요소를 찾고
-    // 2. 두 개 단위로 끊는다. 
-    // 3. 첫 번째를 input, 두 번째를 output으로 지정 
-
     let sampleInputs = $('[id^=sample-input-]')
     let sampleOutputs = $('[id^=sample-output-]')
     let testCases:string = ""
@@ -229,10 +220,10 @@ async function getContent(problemNumber:string, $:cheerio.CheerioAPI){
 
         testCases += `Input:(\n${input})\n\nOutput:(\n${output})\n\n`
     }
-
-    // mathjax 있으면 바꿔야 함. 
     
-    let desiredContent = content.children('div').slice(2).toArray().map(elem => $.html(elem)).join('').replaceAll(' ', ' ');
+
+    let content = $('body > div.wrapper > div.container.content > div.row');
+    let desiredContent = content.children('div').slice(2).toArray().map(elem => $.html(elem)).join('').replaceAll("\\(", "$").replaceAll("\\)", "$");
     return {name, title, tier, testCases, desiredContent}
 }
 
@@ -282,8 +273,116 @@ function generateHtml(desiredContent:string){
 
 function getMarkdown(desiredContent:string){
     const $ = cheerio.load(`<body>${desiredContent}</body>`);
-    return utils.HTM($, $('body')[0])
+
+    console.log($('body').html())
+    return HTM($, $('body')[0])
 }
+
+function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
+    // html to markdown 
+    let markdown = ""
+    let $el = $(el)
+    let tagName = el.name.toLocaleLowerCase()
+    // let text = $el.text().replaceAll("\n", "").trim().replaceAll("\\(", "$").replaceAll("\\)", "$").replace(utils.specialSpacesRegex, ' ').replaceAll(" \\", "\\")
+    let text = $el.text().replaceAll("\n", "").trim().replace(utils.specialSpacesRegex, ' ').replaceAll(" \\", "\\")
+
+    let isHidden = $el.attr('style')?.includes('display: none') || false;
+    
+    if (isHidden){
+        return markdown
+    }
+    
+    // table 
+    if (tagName === "table"){
+        let table = $('#problem-info');            
+        let headers = table.find('thead th');
+        let headerTexts: string[] = [];
+        headers.each((index, element) => {
+            headerTexts.push($(element).text().trim());
+        });
+        markdown += `| ${headerTexts.join(' | ')} |\n`;
+        markdown += `| ${headerTexts.map(() => '---').join(' | ')} |\n`;
+    
+        let rows = table.find('tbody tr');
+        rows.each((index, row) => {
+            let cols = $(row).find('td');
+            let colTexts: string[] = [];
+            cols.each((index, col) => {
+                colTexts.push($(col).text().trim());
+            });
+            markdown += `| ${colTexts.join(' | ')} |\n`;
+        });
+        return markdown
+    } 
+
+
+    // no children 
+    if ($el.children().length === 0){
+        switch (tagName) {
+            case 'p':
+                if ($el.attr('style')){
+                    markdown = `<p style="${$el.attr('style')}">${utils.getPrefix(tagName)}${text}</p>\n\n`
+                } else {
+                    markdown = `${utils.getPrefix(tagName)}${text}\n\n`;
+                }
+                break 
+            
+            case 'li':
+            case 'h1':
+            case 'h2':
+            case 'h3':
+                markdown = `${utils.getPrefix(tagName)}${text}\n\n`;
+                break;
+            case 'pre':
+                markdown = `<pre>${$el.html()}</pre>\n`;
+                break; 
+            case 'a':
+                markdown = `[${text}](${$el.attr('href')})`;
+                break; 
+            case 'sub':
+                markdown = `<sub>${text}</sub>`
+                break; 
+            case 'code':
+                markdown = `<code>${text}</code>`;
+                break;
+            case 'blockquote':
+                markdown += '> ' + text.trim().replace(/\n/g, '\n> ') + '\n\n';
+                break;
+            case 'br':
+                markdown += '\n';
+                break;
+            case 'span':
+                markdown += text; // 상위 태그가 반드시 존재
+                break;
+            case 'img':
+                // 왜 없어질까? 
+                // console.log($el.html())
+                if ($el.attr('src')?.includes('solved.ac')){
+                    // rating img 
+                    markdown += `<img src="${$el.attr('src')}" style="height:20px" />`
+                } else {
+                    markdown += `<img src="${$el.attr('src')}" style="${$el.attr('style') || ''} display:block; margin-left:auto; margin-right:auto;" />\n`
+                }
+                break; 
+            default:                        
+                break; 
+        }
+        return markdown 
+    }
+
+    markdown += utils.getPrefix(tagName)
+    $el.contents().each((i, content) => {
+        if (content.type === "text"){
+            markdown += $(content).text().trimStart()
+        } else if (content.type === "tag"){
+            markdown += HTM($, content);
+        }
+    });
+    return markdown + '\n'
+}
+
+
+
 
 async function getTier(problemNumber: string): Promise<TierInfo> {
     try {

@@ -5,12 +5,28 @@ import { createProblemFiles } from "./commands/createProblem"
 import { crawlSolvedProblems } from "./commands/crawlProblems"
 import { updateReadme } from './commands/updateReadme';
 import { pushToGithub } from './commands/pushToGithub';
-import { runTestCases } from './commands/runTestCases'
+import { runTestCases } from './commands/runTestCases';
+import { updateProjects } from './commands/updator'
 
 
+let previousVersion: string | undefined;
 
 
 export function activate(context: vscode.ExtensionContext) {
+
+    const currentVersion = vscode.extensions.getExtension('magenta1223.boj-helper')?.packageJSON.version;
+    previousVersion = context.globalState.get('extensionVersion');
+
+    
+    // console.log('version', previousVersion, '->', currentVersion)
+    if (previousVersion === undefined){
+        // initial. 
+        context.globalState.update('extensionVersion', currentVersion);
+    } else if (previousVersion !== currentVersion) {
+        context.globalState.update('extensionVersion', currentVersion);
+        updateProjects(previousVersion)
+    }
+
 
     let disposableOpenProblem = vscode.commands.registerCommand('onCommand.extension.openProblem', async () => {
         const config = await getConfig()
@@ -18,7 +34,6 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     let disposableCreateProblemFiles = vscode.commands.registerCommand('onCommand.extension.createProblemFiles', async () => {
-        // BOJ ID가 존재하는지 확인 
         const config = await getConfig()
         await createProblemFiles(config)
     });

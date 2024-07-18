@@ -155,22 +155,6 @@ export async function getConfig(){
     if (!fs.existsSync(gitDir)){
         await git.init()
     }
-    // const remotes = await git.getRemotes(true)
-    // if (remotes.length === 0){
-    //     await git.addRemote('origin', gitAddress)
-    // } else {
-    //     const originRemote = remotes.find(remote => remote.name === 'origin')
-    //     if (originRemote){
-    //         if (originRemote.refs.fetch !== gitAddress) {
-    //             fs.rmSync(gitDir, { recursive: true, force: true });
-    //             await git.init();
-    //             await git.addRemote('origin', gitAddress);
-    //         }
-    //     } else {
-    //         await git.addRemote('origin', gitAddress);
-    //     }
-    // }
-
 
     const remotes = await git.getRemotes(true)
     const originRemote = remotes.find(remote => remote.name === 'origin')
@@ -182,5 +166,8 @@ export async function getConfig(){
         await git.addRemote('origin', gitAddress);
     }
     await git.pull('origin', 'master')
+
+
+    
     return { bojID, language, gitUsername, gitEmail, gitAddress, workingDirectory, chromePath} 
 }
