@@ -294,16 +294,22 @@ function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
     
     // table 
     if (tagName === "table"){
-        let table = $('#problem-info');            
-        let headers = table.find('thead th');
+
+        // 
+        // let table = $('#problem-info');            
+        let headers = $el.find('thead th');
         let headerTexts: string[] = [];
         headers.each((index, element) => {
             headerTexts.push($(element).text().trim());
         });
+        let rows = $el.find('tbody tr');
+
+        if (headerTexts.length === 0){
+            headerTexts = Array($(rows[0]).find('td').length).fill('');
+        }
         markdown += `| ${headerTexts.join(' | ')} |\n`;
         markdown += `| ${headerTexts.map(() => '---').join(' | ')} |\n`;
-    
-        let rows = table.find('tbody tr');
+        
         rows.each((index, row) => {
             let cols = $(row).find('td');
             let colTexts: string[] = [];
@@ -312,7 +318,7 @@ function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
             });
             markdown += `| ${colTexts.join(' | ')} |\n`;
         });
-        return markdown
+        return markdown + '\n'
     } 
 
 
@@ -341,6 +347,9 @@ function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
                 break; 
             case 'sub':
                 markdown = `<sub>${text}</sub>`
+                break; 
+            case 'sup':
+                markdown = `<sup>${text}</sup>`
                 break; 
             case 'code':
                 markdown = `<code>${text}</code>`;

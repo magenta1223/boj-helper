@@ -66,6 +66,15 @@
 
 ## Release Notes
 
+
+## 0.1.12
+- table이 포함된 문제에서 제대로 렌더링되지 않던 문제 수정
+
+## 0.1.11
+- updator 추가 -> version 변화를 감지, 기존에 생성된 문제도 재구성함. 
+- 0.1.10에서 문제 보기를 webview에서 md로 변경함에 따라 이미지를 md파일에 포함.
+- 표 caption 가운데 맞춤 
+
 ## 0.1.10
 - inline 수식이 있는 문제(mjxcontainer를 사용한 문제)를 열 때, webview에서 수식을 렌더링하지 못하는 이슈 발견 
     - webview대신 markdown으로 열기
