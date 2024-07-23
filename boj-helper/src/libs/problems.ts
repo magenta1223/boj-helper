@@ -273,8 +273,6 @@ function generateHtml(desiredContent:string){
 
 function getMarkdown(desiredContent:string){
     const $ = cheerio.load(`<body>${desiredContent}</body>`);
-
-    console.log($('body').html())
     return HTM($, $('body')[0])
 }
 
@@ -283,9 +281,7 @@ function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
     let markdown = ""
     let $el = $(el)
     let tagName = el.name.toLocaleLowerCase()
-    // let text = $el.text().replaceAll("\n", "").trim().replaceAll("\\(", "$").replaceAll("\\)", "$").replace(utils.specialSpacesRegex, ' ').replaceAll(" \\", "\\")
-    let text = $el.text().replaceAll("\n", "").trim().replace(utils.specialSpacesRegex, ' ').replaceAll(" \\", "\\")
-
+    let text = $el.text().replaceAll("\n", "").trim().replace(utils.specialSpacesRegex, ' ').replaceAll(" \\", "\\").replaceAll("*", "\\*")
     let isHidden = $el.attr('style')?.includes('display: none') || false;
     
     if (isHidden){
@@ -307,6 +303,8 @@ function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
         if (headerTexts.length === 0){
             headerTexts = Array($(rows[0]).find('td').length).fill('');
         }
+
+        markdown += '\n\n';
         markdown += `| ${headerTexts.join(' | ')} |\n`;
         markdown += `| ${headerTexts.map(() => '---').join(' | ')} |\n`;
         
@@ -314,7 +312,9 @@ function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
             let cols = $(row).find('td');
             let colTexts: string[] = [];
             cols.each((index, col) => {
-                colTexts.push($(col).text().trim());
+                // img가 있는 경우 -> img 
+                // colTexts.push($(col).text().trim());
+                colTexts.push(HTM($, col).trim())
             });
             markdown += `| ${colTexts.join(' | ')} |\n`;
         });
@@ -331,13 +331,16 @@ function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
                 } else {
                     markdown = `${utils.getPrefix(tagName)}${text}\n\n`;
                 }
-                break 
+                break;
             
             case 'li':
             case 'h1':
             case 'h2':
             case 'h3':
                 markdown = `${utils.getPrefix(tagName)}${text}\n\n`;
+                break;
+            case 'td':
+                markdown = text 
                 break;
             case 'pre':
                 markdown = `<pre>${$el.html()}</pre>\n`;
@@ -346,13 +349,12 @@ function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
                 markdown = `[${text}](${$el.attr('href')})`;
                 break; 
             case 'sub':
-                markdown = `<sub>${text}</sub>`
-                break; 
             case 'sup':
-                markdown = `<sup>${text}</sup>`
-                break; 
             case 'code':
-                markdown = `<code>${text}</code>`;
+            case 'strong':
+            case 'em':
+            case 'i':
+                markdown = `<${tagName}>${text}</${tagName}>`;
                 break;
             case 'blockquote':
                 markdown += '> ' + text.trim().replace(/\n/g, '\n> ') + '\n\n';
@@ -364,10 +366,7 @@ function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
                 markdown += text; // 상위 태그가 반드시 존재
                 break;
             case 'img':
-                // 왜 없어질까? 
-                // console.log($el.html())
                 if ($el.attr('src')?.includes('solved.ac')){
-                    // rating img 
                     markdown += `<img src="${$el.attr('src')}" style="height:20px" />`
                 } else {
                     markdown += `<img src="${$el.attr('src')}" style="${$el.attr('style') || ''} display:block; margin-left:auto; margin-right:auto;" />\n`
@@ -380,14 +379,21 @@ function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
     }
 
     markdown += utils.getPrefix(tagName)
+    let idx = 1 
     $el.contents().each((i, content) => {
         if (content.type === "text"){
-            markdown += $(content).text().trimStart()
+            markdown += $(content).text().trimStart().replaceAll("*", "\*")
         } else if (content.type === "tag"){
-            markdown += HTM($, content);
+            if (tagName === 'ol'){
+                markdown += `${idx++}. ${HTM($, content).slice(2,-1)}\n`;
+
+            } else {
+                markdown += HTM($, content);
+            }
+
         }
     });
-    return markdown + '\n'
+    return markdown + (tagName==='li'||tagName==='p'?'\n':"")
 }
 
 

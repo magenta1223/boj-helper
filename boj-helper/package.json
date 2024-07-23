@@ -2,7 +2,7 @@
     "name": "boj-helper",
     "displayName": "boj-helper",
     "description": "",
-    "version": "0.1.12",
+    "version": "0.1.15",
     "engines": {
         "vscode": "^1.90.0"
     },
@@ -125,7 +125,7 @@
     },
     "dependencies": {
         "@types/d3": "^7.4.3",
-        "@vscode/vsce": "^2.30.0",
+        "@vscode/vsce": "^2.31.1",
         "axios": "^1.7.2",
         "cheerio": "^1.0.0-rc.12",
         "d3": "^7.9.0",
