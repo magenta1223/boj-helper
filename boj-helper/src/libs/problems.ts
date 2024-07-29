@@ -393,7 +393,21 @@ function HTM($:cheerio.CheerioAPI, el:cheerio.Element): string {
 
         }
     });
-    return markdown + (tagName==='li'||tagName==='p'?'\n':"")
+
+    let suffix = ""
+    switch (tagName){
+        case 'li':
+            suffix = "\n"
+            break; 
+        case 'p':
+            suffix = "\n\n"
+            break; 
+        default:
+            suffix = ""
+            break 
+    }
+
+    return markdown + suffix
 }
 
 
