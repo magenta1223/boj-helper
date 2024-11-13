@@ -112,6 +112,7 @@ export class Crawler {
                     if (token.isCancellationRequested) {
                         vscode.window.showInformationMessage('작업이 취소되었습니다.');
                         isCancelled = true;
+                        // 이걸 이렇게 하지말고 에러 메세지를 리턴, 에러 처리 메소드로 ㄱㄱ 
                         break;
                     }
                     let num = toBeUpdated[i];
@@ -123,19 +124,14 @@ export class Crawler {
                 }
             }
 
-
             this.browser.close()
-
             if (isCancelled){
                 vscode.window.showErrorMessage("작업이 취소되었습니다.")
             } else {
                 vscode.window.showInformationMessage("작업이 완료되었습니다.")
-
             }
         })
-
     }
-
 
     async login() {
         const page = await this.browser.newPage();
@@ -176,7 +172,6 @@ export class Crawler {
             problems.push($(el).text().trim())
         })
         return problems
-
     }
 
     getExistingFiles(){

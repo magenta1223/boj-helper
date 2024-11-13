@@ -42,17 +42,6 @@ export async function openProblem(config:Config){
         await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
 
 
-        
-
-            
-
-        // const panel = vscode.window.createWebviewPanel(
-        //     'problemWebView', 
-        //     `${problem.title}`, 
-        //     vscode.ViewColumn.One, 
-        //     {}
-        // );
-        // panel.webview.html = problem.html 
     }
 };
 

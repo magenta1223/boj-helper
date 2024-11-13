@@ -20,7 +20,8 @@ export interface MetaData {
     title:string;
     problemNumber:string;
     date:string;
-    tier:TierInfo
+    tier:TierInfo;
+    solved:boolean;
 }
 
 export interface Problem {
@@ -67,6 +68,9 @@ export const tierNames = [
 ];
 
 export async function createProblem(bojID:string, problemNumber:string,language:string, openWebView:boolean,  code:string, submitTime:string){
+    let terminal = utils.initTerminal()
+
+
     const problemUrl = `https://www.acmicpc.net/problem/${problemNumber}`;
     const problem = await fetchProblem(problemNumber, problemUrl);
 
@@ -88,6 +92,10 @@ export async function createProblem(bojID:string, problemNumber:string,language:
     PATHS["markdown"]= path.join(PATHS.folder, `${problem.title}.md`);
     PATHS["testCases"]= path.join(PATHS.folder, `testCases.txt`);
     PATHS["metadata"]= path.join(PATHS.folder, `metadata.json`);
+
+
+    console.log(problemNumber, problemUrl, problem)
+    console.log(PATHS)
 
     if (!fs.existsSync(PATHS.folder)) {
         fs.mkdirSync(PATHS.folder);
@@ -116,14 +124,9 @@ export async function createProblem(bojID:string, problemNumber:string,language:
         await vscode.window.showTextDocument(docProblem, { viewColumn: vscode.ViewColumn.Two });
 
 
-        const terminals = vscode.window.terminals;
-        let terminal: vscode.Terminal;
-        if (terminals.length > 0) {
-            terminal = terminals[0]; 
-        } else {
-            terminal = vscode.window.createTerminal(`cmd`);
-            terminal.show();
-        }
+
+        
+        // clean terminal 
         terminal.sendText(`cd ${PATHS.folder}`)
 
     }
@@ -150,7 +153,8 @@ export async function fetchProblem(problemNumber:string, url: string): Promise<P
             title:title,
             problemNumber: problemNumber,
             date:new Date().toISOString().slice(0, 19).replace('T', ' '), // timezone issue 
-            tier: tier 
+            tier: tier,
+            solved: false  
         }
         let errorMsg = ""
         return {html, title, markdown, metadata, testCases, errorMsg};
@@ -160,7 +164,7 @@ export async function fetchProblem(problemNumber:string, url: string): Promise<P
 
         let html = "";let title = "";let markdown = "";
         let tier = {name:"", abb:"", nameColor :"", abbColor : "", svg:"", level:0};
-        let metadata = {name:"", title:"", problemNumber:"", date:"", tier: tier};
+        let metadata = {name:"", title:"", problemNumber:"", date:"", tier: tier, solved:false};
         let testCases = ""
         let errorMsg = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
 
@@ -221,7 +225,7 @@ async function getContent(problemNumber:string, $:cheerio.CheerioAPI){
         testCases += `Input:(\n${input})\n\nOutput:(\n${output})\n\n`
     }
     
-
+    
     let content = $('body > div.wrapper > div.container.content > div.row');
     let desiredContent = content.children('div').slice(2).toArray().map(elem => $.html(elem)).join('').replaceAll("\\(", "$").replaceAll("\\)", "$");
     return {name, title, tier, testCases, desiredContent}
@@ -478,16 +482,28 @@ ${leftSymbol}  ***********************************************`;
     return header + `\n\n${code}`
 }
 
-export function storedProblemsAt(problemPath:string, moveTo:string): MetaData[]{
+export function storedProblemsAt(
+        problemPath:string,
+        moveTo:boolean,
+        paths: {[key: string]: string},
+        problemStatus:{ [key: string]: boolean }
+    ): MetaData[]{
+
     let problemDirs = fs.readdirSync(problemPath).filter(folder => folder.includes("번："));
     let problems: MetaData[] = []
     for (let problem of problemDirs) {
         let metadataPath = path.join(problemPath, problem, "metadata.json");
         let pDir = path.join(problemPath, problem);
-        if (fs.existsSync(metadataPath)) {
-            problems.push(JSON.parse(fs.readFileSync(metadataPath, 'utf8')))
-            if (moveTo){
-                utils.moveFolder(pDir, path.join(moveTo, problem))
+        if (fs.existsSync(metadataPath)){
+            let metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
+            metadata.solved = problemStatus[metadata.problemNumber] 
+            fs.writeFileSync(metadataPath, stringify(metadata, {
+                indent: 4,
+            }));
+            problems.push(metadata)
+            if (moveTo || ~metadata.solved){
+                let dst = metadata.solved ? paths.solved : paths.solving
+                utils.moveFolder(pDir, path.join(dst, problem))
             }
         }
     }
@@ -495,7 +511,7 @@ export function storedProblemsAt(problemPath:string, moveTo:string): MetaData[]{
 }
 
 export function problemsToMarkdown(problems:MetaData[], problemPath:string):string{
-    let mdTable = ''
+    let mdTable = '<details>\n    <summary>문제 보기</summary>\n\n'
     const columns:string[] = ["번호", "이름", "링크", "코드", "날짜"]
     mdTable += `| ${columns.join(' | ')} |\n`;
     mdTable += `| ${columns.map(() => '---').join(' | ')} |\n`;
@@ -511,6 +527,7 @@ export function problemsToMarkdown(problems:MetaData[], problemPath:string):stri
         ]
         mdTable += `| ${rows.join(' | ')} |\n`;
     })
+    mdTable += '</details>'
     return mdTable 
 }
 

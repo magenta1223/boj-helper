@@ -1,7 +1,8 @@
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
-
+import * as vscode from "vscode"
+import * as cheerio from 'cheerio';
 
 
 const specialSpaces = [
@@ -152,4 +153,56 @@ export function getExistingFiles(problemDir:string){
             let fullPath = path.join(problemDir, file);
             return fs.lstatSync(fullPath).isDirectory() && file.includes("번");
         }));
+}
+
+
+export function initTerminal():vscode.Terminal{
+    const terminals = vscode.window.terminals;
+    let terminal: vscode.Terminal;
+    if (terminals.length > 0) {
+        terminal = terminals[0]; 
+    } else {
+        terminal = vscode.window.createTerminal(`cmd`);
+        terminal.show();
+    }
+    terminal.sendText(``)
+    return terminal 
+}
+
+export async function getProblemStatus(bojID:string):Promise<{[key: string]: boolean}>{
+
+    let response = await axios.get(`https://www.acmicpc.net/user/${bojID}`, {
+        headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        },
+    });
+    let $ =cheerio.load(response.data.toString("utf-8"))
+
+    let solved = 'body > div.wrapper > div.container.content > div.row > div:nth-child(2) > div > div.col-md-9 > div:nth-child(2) > div.panel-body > div > a'
+    // let solvedProblems:string[] = []
+    // $(solved).each((i, el) => {
+    //     solvedProblems.push($(el).text().trim())
+    // })
+    let solvedProblems = $(solved).map((i, el) => $(el).text().trim()).get();
+
+
+    let solving = 'body > div.wrapper > div.container.content > div.row > div:nth-child(2) > div > div.col-md-9 > div:nth-child(3) > div.panel-body > div > a'
+    // let solvingProblems:string[] = []
+    // $(solving).each((i, el) => {
+    //     solvingProblems.push($(el).text().trim())
+    // })
+    let solvingProblems = $(solving).map((i, el) => $(el).text().trim()).get();
+
+    // update 
+    let problemStatus: { [key: string]: boolean } = {};
+    solvedProblems.forEach((el: string) => {
+        problemStatus[el] = true;
+    });
+    solvingProblems.forEach((el: string) => {
+        problemStatus[el] = false;
+    });
+    
+
+    return problemStatus
+
 }
