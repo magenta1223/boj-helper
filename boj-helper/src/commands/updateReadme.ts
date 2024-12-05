@@ -30,14 +30,16 @@ export async function updateReadme(config:Config){
             readme : path.join(wd, "README.md"),
         };
 
+        console.log(PATHS)
+
         const terminal = utils.initTerminal()
         terminal.sendText(`cd ${PATHS.newlySolved}`)
 
-        // updating pass or fail 
+        // // updating pass or fail 
         const problemStatus = await utils.getProblemStatus(config.bojID)
 
-        // getting solved problems 
-        // status에 pass or fail에 따라 다른 곳으로 보내야되는데 
+        // // getting solved problems 
+        // // status에 pass or fail에 따라 다른 곳으로 보내야되는데 
         progress.report({ increment: 33, message: `Get solved problems..` });    
 
 
@@ -45,8 +47,10 @@ export async function updateReadme(config:Config){
         const problems = storedProblemsAt(PATHS.solved, false, PATHS, problemStatus)
             .concat(storedProblemsAt(PATHS.newlySolved, true, PATHS, problemStatus))
             .concat(storedProblemsAt(PATHS.solving, true, PATHS, problemStatus))
+
+        console.log("here?")
             
-        // problems를 solved여부에 따라 분리 
+        // // problems를 solved여부에 따라 분리 
         const solved:MetaData[] = []
         const solving:MetaData[] = []
         problems.forEach((metadata) => {

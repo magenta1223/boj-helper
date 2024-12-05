@@ -501,7 +501,7 @@ export function storedProblemsAt(
                 indent: 4,
             }));
             problems.push(metadata)
-            if (moveTo || ~metadata.solved){
+            if (moveTo || !metadata.solved){
                 let dst = metadata.solved ? paths.solved : paths.solving
                 utils.moveFolder(pDir, path.join(dst, problem))
             }
@@ -512,13 +512,14 @@ export function storedProblemsAt(
 
 export function problemsToMarkdown(problems:MetaData[], problemPath:string):string{
     let mdTable = '<details>\n    <summary>문제 보기</summary>\n\n'
-    const columns:string[] = ["번호", "이름", "링크", "코드", "날짜"]
+    const columns:string[] = ["번호", "문제 번호", "이름", "링크", "코드", "날짜"]
     mdTable += `| ${columns.join(' | ')} |\n`;
     mdTable += `| ${columns.map(() => '---').join(' | ')} |\n`;
 
     problems.forEach((metadata, index) => {
         let source = path.join("./problems", metadata.title, `${metadata.title}.py`).replaceAll(' ', '%20').replaceAll('\\', '/')
         let rows:string[] = [
+            index.toString(),
             `${metadata.problemNumber} 번`,
             `<img src="${metadata.tier.svg}" style="height:20px"> ${metadata.name}`,
             `[문제링크](https://boj.kr/${metadata.problemNumber})`,

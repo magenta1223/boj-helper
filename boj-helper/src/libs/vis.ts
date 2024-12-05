@@ -140,7 +140,8 @@ export async function renderSvg(config:Config){
         }
         const getFill = (val:number) => {
             if (val === 0){
-                return "#DDDFE0"
+                // return "#DDDFE0"
+                return '#FFFFFF'
             } else if (val < 3){
                 return '#A1E4AC'
             } else if (val < 7) {
@@ -225,7 +226,7 @@ export async function renderSvg(config:Config){
 
         const streak = svg.append('g')
             .attr("transform", `translate(${bgX+margin},${bgY+2.3*margin})`);
-        const s = 15*scale; const m = 4*scale
+        const s = 15*scale; const m = 4*scale // size and margin 
 
 
         const weekdays = ['S','M','T','W','T','F','S']
@@ -246,21 +247,40 @@ export async function renderSvg(config:Config){
         currentDate.setDate(currentDate.getDate() + currentDate.getDay() === 0 ? 0 : 7 - currentDate.getDay());
         let week = 1
         let month = currentDate.getMonth()
-        while (currentDate <= today) {
+        let monthMargin = 0 
+        let added = false;
+        while (currentDate <= today){
             for (let i=0; i<7;i++){
-                let box = drawBox((s+m)*week, (s+m)*i, getVal(currentDate, raw))
-                currentDate.setDate(currentDate.getDate() + 1); // 다음 날짜로 설정
-                if (currentDate>today){
-                    break 
+                // x좌표, y좌표 
+                // 월이 바뀌면 간격을 살짝 더 벌리고 싶음
+                // 1주일안에 월이 2번 바뀌진 않으므로, month 와 currentDate.getMonth()가 다른 경우, monthMargin에 m만큼 추가 
+                // 한번만 추가 
+                if (!added && month != currentDate.getMonth()){
+                    monthMargin += s
+                    added = true 
                 }
+
+                drawBox((s+m)*week+monthMargin, (s+m)*i, getVal(currentDate, raw))
+                currentDate.setDate(currentDate.getDate() + 1); // 다음 날짜로 설정
+
+
             }
-            console.log(currentDate)
+
+            // 월말과 주차종료가 겹치면 발생함. 
+            // currentDate가 해당 월의 첫 날짜면 -> month margin을 추가 
+
+            if (currentDate.getDate() == 1){
+                added = true 
+                monthMargin += s
+            } else {
+                added = false 
+            }
 
             if (currentDate.getMonth() !== month){
                 month = currentDate.getMonth()
                 let text = streak.append('text')
                 text.text(`${month+1}월`)
-                    .attr('x', (s+m)*week)
+                    .attr('x', (s+m)*week+monthMargin+ (currentDate.getDate()==1?s:0))
                     .attr('y', (s+m)*7)
                     .style('text-anchor', 'middle')
                     .style('dominant-baseline', 'hanging')
@@ -268,6 +288,9 @@ export async function renderSvg(config:Config){
                     .style('color', 'black')
                     .style('font-family', 'Noto Sans, sans-serif')
             }
+            
+  
+
 
             week += 1
         }
