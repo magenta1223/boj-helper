@@ -10,13 +10,6 @@ function ver2num(version:string):number{
 }
 
 export async function updateProjects(previousVersion:string){
-
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders) {
-        return;
-    }
-
-
     // 3. 다르다면 기존 버전 초과 ~ 현재 버전 이하의 모든 updatorFuncs를 순차적으로 적용 
     
     // prev 이후 모든 updator funcs를 수행해야 함. 

@@ -2,7 +2,7 @@
     "name": "boj-helper",
     "displayName": "boj-helper",
     "description": "",
-    "version": "0.1.19",
+    "version": "0.2.1",
     "engines": {
         "vscode": "^1.90.0"
     },
@@ -15,7 +15,8 @@
         "onCommand:extension.crawlSolved",
         "onCommand:extension.updateReadme",
         "onCommand:extension.pushToGithub",
-        "onCommand:extension.runTestCases"
+        "onCommand:extension.runTestCases",
+        "onCommand:extension.changeLanguage"
     ],
     "main": "./dist/extension.js",
     "contributes": {
@@ -43,6 +44,10 @@
             {
                 "command": "onCommand.extension.runTestCases",
                 "title": "BOJ Helper: Run Test Cases"
+            },
+            {
+                "command": "onCommand.extension.changeLanguage",
+                "title": "BOJ Helper: change language"
             }
         ],
         "configuration": {
@@ -61,7 +66,8 @@
                         "cpp",
                         "c",
                         "java",
-                        "rust"
+                        "rust",
+                        "kotlin"
                     ],
                     "default": "python",
                     "description": "새 문제를 풀 때 사용할 프로그래밍 언어를 선택합니다."

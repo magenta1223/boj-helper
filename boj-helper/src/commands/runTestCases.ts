@@ -8,6 +8,9 @@ import { getProblemPath } from '../libs/problems';
 
 
 export async function runTestCases(config:Config){
+    const workingDirectory = config.workingDirectory
+
+
 
     // 1. 문제 번호를 입력받고 
     const problemNumber = await vscode.window.showInputBox({ prompt: '문제 번호를 입력하세요.' });
@@ -15,40 +18,6 @@ export async function runTestCases(config:Config){
         vscode.window.showErrorMessage("문제 번호가 입력되지 않았습니다.")
         return;
     }
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders) {
-        vscode.window.showErrorMessage('작업폴더가 없습니다. 문제를 생성할 폴더 (problems의 상위 폴더)에서 수행하세요.');
-        return;
-    }
-    
-
-    // 2. 문제가 존재하는지 확인
-    // const workingDirectory = workspaceFolders[0].uri.fsPath
-    // let problem =  fs.readdirSync(workingDirectory).filter(file => {
-    //     let fullPath = path.join(workingDirectory, file);
-    //     return fs.lstatSync(fullPath).isDirectory() && file.includes(`${problemNumber}번`);
-    // }).map(dir => {
-    //     return path.join(workingDirectory, dir);
-    // })
-
-
-    // if (problem.length === 0){
-    //     let problemsPath = path.join(workingDirectory, "problems")
-    //     problem =  fs.readdirSync(problemsPath).filter(file => {
-    //         let fullPath = path.join(problemsPath, file);
-    //         return fs.lstatSync(fullPath).isDirectory() && file.includes(`${problemNumber}번`);
-    //     }).map(dir => {
-    //         return path.join(problemsPath, dir);
-    //     })
-
-    //     if (problem.length === 0){
-    //         vscode.window.showErrorMessage(`${problemNumber}번 문제가 존재하지 않습니다.`)
-    //         return ; 
-    //     }
-    // }
-
-
-    const workingDirectory = workspaceFolders[0].uri.fsPath
 
     let problemPath = getProblemPath(workingDirectory, problemNumber)
 

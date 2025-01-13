@@ -8,11 +8,8 @@ import { visualizeStatistics } from './visStatitstics';
 
 
 export async function updateReadme(config:Config){
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders) {
-        vscode.window.showErrorMessage('작업폴더가 없습니다. 문제를 생성할 폴더 (problems의 상위 폴더)에서 수행하세요.');
-        return;
-    }
+
+    const workingDirectory = config.workingDirectory
 
     // refineMeta()
 
@@ -22,12 +19,11 @@ export async function updateReadme(config:Config){
         cancellable: false 
     }, async (progress) => {
         
-        const wd = workspaceFolders[0].uri.fsPath
         const PATHS: { [key: string]: string } = {
-            newlySolved: wd,
-            solved : path.join(wd, "problems"),
-            solving : path.join(wd, "unsolved"),
-            readme : path.join(wd, "README.md"),
+            newlySolved: workingDirectory,
+            solved : path.join(workingDirectory, "problems"),
+            solving : path.join(workingDirectory, "unsolved"),
+            readme : path.join(workingDirectory, "README.md"),
         };
 
         console.log(PATHS)
@@ -47,8 +43,6 @@ export async function updateReadme(config:Config){
         const problems = storedProblemsAt(PATHS.solved, false, PATHS, problemStatus)
             .concat(storedProblemsAt(PATHS.newlySolved, true, PATHS, problemStatus))
             .concat(storedProblemsAt(PATHS.solving, true, PATHS, problemStatus))
-
-        console.log("here?")
             
         // // problems를 solved여부에 따라 분리 
         const solved:MetaData[] = []

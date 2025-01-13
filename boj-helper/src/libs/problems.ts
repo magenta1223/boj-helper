@@ -74,6 +74,8 @@ export async function createProblem(bojID:string, problemNumber:string,language:
     const problemUrl = `https://www.acmicpc.net/problem/${problemNumber}`;
     const problem = await fetchProblem(problemNumber, problemUrl);
 
+    console.log(problemUrl, problem)
+
     // 문제 생성 
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) {

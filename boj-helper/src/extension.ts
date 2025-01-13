@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
-import { getConfig } from "./libs/config"
+import { getConfig } from "./commands/getConfig"
 import { openProblem } from "./commands/openProblem"
 import { createProblemFiles } from "./commands/createProblem"
 import { crawlSolvedProblems } from "./commands/crawlProblems"
 import { updateReadme } from './commands/updateReadme';
 import { pushToGithub } from './commands/pushToGithub';
 import { runTestCases } from './commands/runTestCases';
+import { changeLanguage } from './commands/changeLanguage';
 import { updateProjects } from './commands/updator'
 
 
@@ -17,7 +18,6 @@ export function activate(context: vscode.ExtensionContext) {
     const currentVersion = vscode.extensions.getExtension('magenta1223.boj-helper')?.packageJSON.version;
     previousVersion = context.globalState.get('extensionVersion');
 
-    
     // console.log('version', previousVersion, '->', currentVersion)
     if (previousVersion === undefined){
         // initial. 
@@ -58,6 +58,12 @@ export function activate(context: vscode.ExtensionContext) {
         await runTestCases(config)
     })
 
+    let disposableChangeLanguage = vscode.commands.registerCommand('onCommand.extension.changeLanguage', async () => {
+        const config = await getConfig()
+        await changeLanguage()
+    })
+
+
 
     context.subscriptions.push(disposableOpenProblem);
     context.subscriptions.push(disposableCreateProblemFiles);
@@ -65,6 +71,8 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(disposableUpdateReadme);
     context.subscriptions.push(disposablePushToGithub);
     context.subscriptions.push(disposableRunTestCases);
+    context.subscriptions.push(disposableChangeLanguage);
+
     
 }
 

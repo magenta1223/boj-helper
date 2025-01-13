@@ -14,30 +14,10 @@ export interface Config{
     chromePath:string;
 }
 
-const Lauguages = ['python', 'cpp', 'c', 'java', 'rust', 'kotlin']
+export const Lauguages = ['python', 'cpp', 'c', 'java', 'rust', 'kotlin']
 
-export async function getConfig(){
-    const config = vscode.workspace.getConfiguration('boj-helper');
-
+export async function setBojID(config:vscode.WorkspaceConfiguration){
     let bojID = config.get<string>('BOJID', '');
-    let language = config.get<string>('language', '');
-    let gitUsername = config.get<string>('gitUsername', '');
-    let gitEmail = config.get<string>('gitEmail', '');
-    let gitAddress = config.get<string>('gitAddress', '');
-    let chromePath = config.get<string>('chromePath', '');
-
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders) {
-        vscode.window.showErrorMessage("여기?")
-        throw "workspace error"
-    }
-    let workingDirectory = workspaceFolders[0].uri.fsPath
-
-    const git: SimpleGit = simpleGit(workingDirectory);
-
-    // 1. 값이 없거나 -> 함.
-    // 2. 이상한 값인지 확인
-
     if (!bojID){
         while (!bojID){
             let _bojID = await vscode.window.showInputBox({prompt:"Baekjoon Online Judge의 ID를 입력해주세요. 기존에 작성한 문제 수집 및 성능평가에 사용됩니다."})
@@ -47,7 +27,6 @@ export async function getConfig(){
                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
                     },
                 });
-                console.log(response.data)
                 if (_bojID !== undefined && response.status >= 200 && response.status < 300){
                     bojID = _bojID
                 } else {
@@ -58,22 +37,34 @@ export async function getConfig(){
             }
         }
         vscode.window.showInformationMessage(`$Baekjoon Online Judge ID가 ${bojID}로 설정되었습니다.`)
-        config.update("BOJID", bojID)
-    }
+        config.update("bojID", bojID, vscode.ConfigurationTarget.Workspace)
 
+    }
+}
+
+export async function setLang(config:vscode.WorkspaceConfiguration, language:string){
     if (!language){
         while (!language){
             let _language = await vscode.window.showInputBox({prompt:`프로그래밍 언어가 설정되지 않았습니다. ${Lauguages.join(", ")} 중 하나를 입력해주세요.`})
             _language = _language?.toLowerCase()
-            if (_language && _language in Lauguages){
+            if (_language && Lauguages.includes(_language)){
                 language = _language
             } else {
                 vscode.window.showErrorMessage(`${_language}는 유효하지 않은 언어입니다.`)
             }
         }
         vscode.window.showInformationMessage(`프로그래밍 언어가 ${language}로 설정되었습니다.`)
-        config.update("language", language)
+        // config.update("language", language)
+        config.update("language", language, vscode.ConfigurationTarget.Workspace)
     } 
+}
+
+
+export async function setGithubRepository(config:vscode.WorkspaceConfiguration, workingDirectory:string){
+    let gitUsername = config.get<string>('gitUsername', '');
+    let gitEmail = config.get<string>('gitEmail', '');
+    let gitAddress = config.get<string>('gitAddress', '');
+    const git: SimpleGit = simpleGit(workingDirectory);
 
     if (!gitUsername){
         while (!gitUsername){
@@ -86,7 +77,9 @@ export async function getConfig(){
         }
         vscode.window.showInformationMessage(`git username이 ${gitUsername}로 설정되었습니다.`)
         git.addConfig('user.name', gitUsername)
-        config.update("gitUsername", gitUsername)
+        // config.update("gitUsername", gitUsername)
+        config.update("gitUsername", gitUsername, vscode.ConfigurationTarget.Workspace)
+
     }
 
     if (!gitEmail){
@@ -100,7 +93,9 @@ export async function getConfig(){
         }
         vscode.window.showInformationMessage(`git email이 ${gitEmail}로 설정되었습니다.`)
         git.addConfig('user.email', gitEmail)
-        config.update("gitEmail", gitEmail)
+        // config.update("gitEmail", gitEmail)
+        config.update("gitEmail", gitEmail, vscode.ConfigurationTarget.Workspace)
+
     }
     
     if (!gitAddress){
@@ -125,9 +120,35 @@ export async function getConfig(){
         vscode.window.showInformationMessage(`github 저장소가 ${gitAddress}로 설정되었습니다.`)
         git.init()
         git.addRemote('origin', gitAddress)
-        config.update("gitAddress", gitAddress)
+        // config.update("gitAddress", gitAddress)
+        config.update("gitAddress", gitAddress, vscode.ConfigurationTarget.Workspace)
+
     }
 
+
+    // TODO: workingDirectory에 gitAddress에 해당하는 repository가 있는가? 
+    // 1. 현재 workingDirectory에 git init이 있는지 확인 -> 없다면 init 
+    const gitDir = path.join(workingDirectory, ".git")
+    if (!fs.existsSync(gitDir)){
+        await git.init()
+        // add .gitignore 
+        fs.writeFileSync(path.join(workingDirectory, ".gitignore"), ".vscode")
+    }
+
+    const remotes = await git.getRemotes(true)
+    const originRemote = remotes.find(remote => remote.name === 'origin')
+    if (remotes.length === 0 || !originRemote){
+        await git.addRemote('origin', gitAddress)
+    } else if (originRemote && originRemote.refs.fetch !== gitAddress) {
+        fs.rmSync(gitDir, { recursive: true, force: true });
+        await git.init();
+        await git.addRemote('origin', gitAddress);
+    }
+    await git.pull('origin', 'master')
+}
+
+export async function setChromePath(config:vscode.WorkspaceConfiguration){
+    let chromePath = config.get<string>('chromePath', '');
     if (!chromePath){
         while (!chromePath){
             let _chromePath = await vscode.window.showInputBox({prompt:"chrome.exe의 경로를 입력하세요"})
@@ -146,28 +167,17 @@ export async function getConfig(){
             throw "chromepath error"
         }
     }
+}
 
 
-    // TODO: workingDirectory에 gitAddress에 해당하는 repository가 있는가? 
-
-    // 1. 현재 workingDirectory에 git init이 있는지 확인 -> 없다면 init 
-    const gitDir = path.join(workingDirectory, ".git")
-    if (!fs.existsSync(gitDir)){
-        await git.init()
-    }
-
-    const remotes = await git.getRemotes(true)
-    const originRemote = remotes.find(remote => remote.name === 'origin')
-    if (remotes.length === 0 || !originRemote){
-        await git.addRemote('origin', gitAddress)
-    } else if (originRemote && originRemote.refs.fetch !== gitAddress) {
-        fs.rmSync(gitDir, { recursive: true, force: true });
-        await git.init();
-        await git.addRemote('origin', gitAddress);
-    }
-    await git.pull('origin', 'master')
+export function parseConfig(config:vscode.WorkspaceConfiguration, workingDirectory:string){
+    let bojID = config.get<string>('BOJID', '');
+    let language = config.get<string>('language', '');
+    let gitUsername = config.get<string>('gitUsername', '');
+    let gitEmail = config.get<string>('gitEmail', '');
+    let gitAddress = config.get<string>('gitAddress', '');
+    let chromePath = config.get<string>('chromePath', '');
 
 
-    
-    return { bojID, language, gitUsername, gitEmail, gitAddress, workingDirectory, chromePath} 
+    return {bojID, language, gitUsername, gitEmail, gitAddress, workingDirectory, chromePath}
 }
