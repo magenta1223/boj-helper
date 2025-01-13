@@ -3,7 +3,6 @@ import axios from 'axios';
 import simpleGit, { SimpleGit } from 'simple-git';
 import * as path from "path"
 import * as fs from "fs"
-import { reporters } from 'mocha';
 
 export interface Config{
     bojID:string;
@@ -15,6 +14,7 @@ export interface Config{
     chromePath:string;
 }
 
+const Lauguages = ['python', 'cpp', 'c', 'java', 'rust', 'kotlin']
 
 export async function getConfig(){
     const config = vscode.workspace.getConfiguration('boj-helper');
@@ -63,9 +63,9 @@ export async function getConfig(){
 
     if (!language){
         while (!language){
-            let _language = await vscode.window.showInputBox({prompt:"프로그래밍 언어가 설정되지 않았습니다. python, cpp, c, java, rust 중 하나를 입력해주세요."})
+            let _language = await vscode.window.showInputBox({prompt:`프로그래밍 언어가 설정되지 않았습니다. ${Lauguages.join(", ")} 중 하나를 입력해주세요.`})
             _language = _language?.toLowerCase()
-            if (_language && _language in ['python', 'cpp', 'c', 'java', 'rust']){
+            if (_language && _language in Lauguages){
                 language = _language
             } else {
                 vscode.window.showErrorMessage(`${_language}는 유효하지 않은 언어입니다.`)

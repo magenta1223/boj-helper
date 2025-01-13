@@ -34,7 +34,8 @@ export function getFileExt(language: string): string {
         "cpp": "cpp",
         "c": "c",
         "java": "java",
-        "rust": "rs"
+        "rust": "rs",
+        "kotlin" : "kt"
     };
 
     if (language in f_exts) {
@@ -51,6 +52,7 @@ export function getCommentSymbols(language: string): {left:string, right:string}
         "cpp":    {"left" : "/*", "right": "*/"},
         "java":   {"left" : "/*", "right": "*/"},
         "rust":   {"left" : "/*", "right": "*/"},
+        "kotlin":   {"left" : "//", "right": "//"},
     };
     if (language in commentSymbols) {
         return commentSymbols[language];
